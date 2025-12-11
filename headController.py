@@ -28,6 +28,9 @@ class ReachyHead():
             r[jointName] = joint
         
         return r
+    
+    def lookAt(self, degAngles : list, duration : float = 1) -> None:
+        self._reachyHead.look_at(x=degAngles[0], y=degAngles[1], z=degAngles[2], duration=duration)
 
     def recordHead(self, recordDurationSeconds : float, samplingFrequencyHertz : float) -> dict:
         """
@@ -77,6 +80,7 @@ class ReachyHead():
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     head = ReachyHead(reachy)
+    head.lookAt([3, 2, 0])
     a = head.recordHead(1, 20)
     print(a)
     head.playHeadRecord(a["diskPosition"], 20)
