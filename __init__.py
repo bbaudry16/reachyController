@@ -1,5 +1,6 @@
 from reachy_sdk import ReachySDK
 import armController as ac
+import headController as hc
 
 class reachyController():
 
@@ -10,3 +11,4 @@ class reachyController():
         self.reachy = reachy
         self.armLeft = ac.ReachyArm(self.reachy, reachyController.ARM_LEFT_ID)
         self.armRight = ac.ReachyArm(self.reachy, reachyController.ARM_RIGHT_ID)
+        self.head = hc.ReachyHead(self.reachy)

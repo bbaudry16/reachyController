@@ -101,7 +101,7 @@ class ReachyArm():
     def recordArm(self, recordDurationSeconds : float, samplingFrequencyHertz : float) -> dict:
         """
         record all arm position during recordDurationSeconds second(s) with a sampling frequency of samplingFrequencySeconds
-        PARAMETER reachy TYPE ReachySDK, arm TYPE const.ReachyArm, recordDurationSeconds TYPE float, samplingFrequencySeconds TYPE float
+        PARAMETER recordDurationSeconds TYPE float, samplingFrequencySeconds TYPE float
         RETURN dict
         """
         trajectories = []
