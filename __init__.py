@@ -84,16 +84,28 @@ class ReachyController():
     def dictToJson(self, dict : dict) -> str:
         return json.dumps(dict, indent=4)
     
+    def jsonToDict(self, jsonString : str) -> dict:
+        return json.loads(jsonString)
+    
     def saveRecordsInJson(self,record : dict, fileName : str) -> None:
         file = open(fileName, mode="w")
         if not file:
             raise "Cannot open file " + fileName
         
         file.write(self.dictToJson(record))
+        file.close()
+
+    def loadRecordsFromJson(self, fileName : str) -> dict:
+        file = open(fileName, mode="r")
+        if not file:
+            raise "Cannot open file " + fileName
+        dictJson = self.jsonToDict(file.read())
+        return dictJson
 
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     reachyC = ReachyController(reachy)
     a = reachyC.record(1, 20)
     reachyC.saveRecordsInJson(a, "a.json")
-    reachyC.playRecord(a)
+    b = reachyC.loadRecordsFromJson("a.json")
+    reachyC.playRecord(b)
