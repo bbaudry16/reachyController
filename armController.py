@@ -119,7 +119,7 @@ class ReachyArm():
 
             time.sleep(samplingTime)
         
-        cm.MKprint("records for arm " + str(arm) + " done !", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+        cm.MKprint("records for arm " + self._getNameByArmSide(ReachyArm.ARM_NAME) + " done !", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
 
 
         return {"samplingFrequency" : samplingFrequencyHertz, "recordDuration" : recordDurationSeconds, "startTime" : start, "jointPosition" : trajectories, "handPosition" : IKPos}

@@ -30,7 +30,7 @@ class ReachyController():
         r : dict = {"samplingFrequency" : samplingFrequencyHertz, "recordDuration" : recordDurationSeconds, "startTime" : start}
         
         cm.MKprint("|-------------------- Start recording reachy joints ------------------|", ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
-        cm.MKprint("recording left hand : " + recordArmLeft + ", recording right hand : " + recordArmRight + ", recording head : " + recordHead, ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
+        cm.MKprint("recording left hand : " + str(recordArmLeft) + ", recording right hand : " + str(recordArmRight) + ", recording head : " + str(recordHead), ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
 
         with ThreadPoolExecutor(max_workers=3) as executor:
             if recordArmLeft:
@@ -59,3 +59,29 @@ class ReachyController():
 
         return r
     
+    def playRecord(self, records : dict, startDuration : float = 3.0) -> None:
+        """
+        play record generated from self.record
+        PARAMETER records TYPE list, startDuration TYPE float
+        RETURN None
+        """
+        leftArm : bool = "armLeftRecords" in records.keys()
+        rightArm : bool = "armRightRecords" in records.keys()
+        head : bool = "headRecords" in records.keys()
+
+        cm.MKprint("|-------------------- Start playing reachy records ------------------|", ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            if leftArm:
+                future_l = executor.submit(self.armLeft.playArmRecord, records["armLeftRecords"]["jointPosition"], records["samplingFrequency"], startDuration)
+            if rightArm:
+                future_r = executor.submit(self.armRight.playArmRecord, records["armRightRecords"]["jointPosition"], records["samplingFrequency"], startDuration)
+            if head:
+                future_h = executor.submit(self.head.playHeadRecord, records["headRecords"]["diskPosition"], records["samplingFrequency"], startDuration)
+        cm.MKprint("|-------------------- Stop playing reachy records ------------------|", ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
+
+
+if __name__ == "__main__":
+    reachy = ReachySDK(host='localhost')
+    reachyC = ReachyController(reachy)
+    a = reachyC.record(1, 20)
+    reachyC.playRecord(a)
