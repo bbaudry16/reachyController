@@ -113,7 +113,7 @@ class ReachyArm():
 
         while (time.time() - start) < recordDurationSeconds:
             current_point = {name: joint.present_position for name, joint in self._joints.items()}
-            current_pos = self._reachyArm.forward_kinematics()
+            current_pos = (self._reachyArm.forward_kinematics()).tolist()
             trajectories.append(current_point)
             IKPos.append(current_pos)
 

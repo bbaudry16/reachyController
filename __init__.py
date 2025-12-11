@@ -4,6 +4,7 @@ import headController as hc
 import consoleManager as cm
 from concurrent.futures import ThreadPoolExecutor
 import time
+import json
 
 class ReachyController():
     #arm id
@@ -72,16 +73,27 @@ class ReachyController():
         cm.MKprint("|-------------------- Start playing reachy records ------------------|", ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
         with ThreadPoolExecutor(max_workers=3) as executor:
             if leftArm:
-                future_l = executor.submit(self.armLeft.playArmRecord, records["armLeftRecords"]["jointPosition"], records["samplingFrequency"], startDuration)
+                executor.submit(self.armLeft.playArmRecord, records["armLeftRecords"]["jointPosition"], records["samplingFrequency"], startDuration)
             if rightArm:
-                future_r = executor.submit(self.armRight.playArmRecord, records["armRightRecords"]["jointPosition"], records["samplingFrequency"], startDuration)
+                executor.submit(self.armRight.playArmRecord, records["armRightRecords"]["jointPosition"], records["samplingFrequency"], startDuration)
             if head:
-                future_h = executor.submit(self.head.playHeadRecord, records["headRecords"]["diskPosition"], records["samplingFrequency"], startDuration)
+                executor.submit(self.head.playHeadRecord, records["headRecords"]["diskPosition"], records["samplingFrequency"], startDuration)
         cm.MKprint("|-------------------- Stop playing reachy records ------------------|", ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
 
+
+    def dictToJson(self, dict : dict) -> str:
+        return json.dumps(dict, indent=4)
+    
+    def saveRecordsInJson(self,record : dict, fileName : str) -> None:
+        file = open(fileName, mode="w")
+        if not file:
+            raise "Cannot open file " + fileName
+        
+        file.write(self.dictToJson(record))
 
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     reachyC = ReachyController(reachy)
     a = reachyC.record(1, 20)
+    reachyC.saveRecordsInJson(a, "a.json")
     reachyC.playRecord(a)
