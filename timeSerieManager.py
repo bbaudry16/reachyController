@@ -1,11 +1,11 @@
-class timeSeries():
+class TimeSeries():
 
     def __init__(self, samplingFrequency : float, recordDurationSeconds : float, jointPosition : list = []):
         self.samplingFrequency = samplingFrequency
         self.recordDuration = recordDurationSeconds
         self.jointPosition = jointPosition
     
-    def __add__(self, ts : "timeSeries"):
+    def __add__(self, ts : "TimeSeries"):
         if self.samplingFrequency != ts.samplingFrequency:
             raise("you cannot add time series with different sampling frequency /!\\")
         def addList(d0 : list, d1 : list):
@@ -16,4 +16,4 @@ class timeSeries():
 
         
         duration : float = max(self.recordDuration, ts.recordDuration)
-        r : "timeSeries" = timeSeries(self.samplingFrequency, duration, addList(self.jointPosition, ts.jointPosition))
+        r : "TimeSeries" = TimeSeries(self.samplingFrequency, duration, addList(self.jointPosition, ts.jointPosition))

@@ -3,6 +3,7 @@ from reachy_sdk import trajectory, ReachySDK
 from scipy.spatial.transform import Rotation as R
 import consoleManager as cm
 import time
+import timeSerieManager as ts
 
 class ReachyJoint():
     def __init__(self, maxAngleEuler : float, minAngleEuler : float):
@@ -98,14 +99,13 @@ class ReachyArm():
         self.changeHandAngle(ReachyArm.JOINT_GRIPPER.maxAngle, duration)
 
 
-    def recordArm(self, recordDurationSeconds : float, samplingFrequencyHertz : float) -> dict:
+    def recordArm(self, recordDurationSeconds : float, samplingFrequencyHertz : float) -> "ts.TimeSeries":
         """
         record all arm position during recordDurationSeconds second(s) with a sampling frequency of samplingFrequencySeconds
         PARAMETER recordDurationSeconds TYPE float, samplingFrequencySeconds TYPE float
-        RETURN dict
+        RETURN ts.TimeSeries
         """
         trajectories = []
-        IKPos = []
         samplingTime : float = 1.0 / samplingFrequencyHertz
         start = time.time()
 
@@ -113,33 +113,38 @@ class ReachyArm():
 
         while (time.time() - start) < recordDurationSeconds:
             current_point = {name: joint.present_position for name, joint in self._joints.items()}
-            current_pos = (self._reachyArm.forward_kinematics()).tolist()
             trajectories.append(current_point)
-            IKPos.append(current_pos)
 
             time.sleep(samplingTime)
         
         cm.MKprint("records for arm " + self._getNameByArmSide(ReachyArm.ARM_NAME) + " done !", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
 
 
-        return {"samplingFrequency" : samplingFrequencyHertz, "recordDuration" : recordDurationSeconds, "startTime" : start, "jointPosition" : trajectories, "handPosition" : IKPos}
+        return ts.TimeSeries(samplingFrequencyHertz, recordDurationSeconds, trajectories)
 
-    def playArmRecord(self, record : list, samplingFrequencyHertz : float, startDuration : float = 3.0) -> None:
+    def playArmRecord(self, record : "ts.TimeSeries", startDuration : float = 3.0) -> None:
         """
         play record from an arm, you need to specify the semplingFrequencySeconds. startDuration is used to set the time reachy will take to go to the start position
-        PARAMETER reachy TYPE ReachySDK, arm TYPE const.ReachyArm, record TYPE list, samplingFrequencySeconds TYPE float, startDuration TYPE float
+        PARAMETER record TYPE ts.TimeSeries, startDuration TYPE float
         RETURN None
         """
-        firstPoint = { self._joints[name]: pos for name, pos in record[0].items() }
+        def firstPoint() -> dict:
+            r : dict = {}
+            for m in record.jointPosition[0].keys():
+                if m in self._joints.keys():
+                    r[self._joints[m]] = record.jointPosition[0][m]
+            return r
+        
+        firstPoint = firstPoint()
 
-        samplingTime : float = 1.0/samplingFrequencyHertz
+        samplingTime : float = 1.0/record.samplingFrequency
 
-        cm.MKprint("start playing records for arm " + self._getNameByArmSide(ReachyArm.ARM_NAME) + " with a sampling frequency of " + str(samplingTime) + "s.", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+        cm.MKprint("start playing records for arm " + self._getNameByArmSide(ReachyArm.ARM_NAME) + " with a sampling frequency of " + str(samplingTime) + "hz.", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
 
 
         trajectory.goto(firstPoint, duration=startDuration)
 
-        for jointsPositions in record:
+        for jointsPositions in record.jointPosition:
             for joint_name, pos in jointsPositions.items():
                 if joint_name in self._joints.keys():
                     self._joints[joint_name].goal_position = pos
@@ -150,7 +155,9 @@ class ReachyArm():
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     arm : ReachyArm = ReachyArm(reachy, "l")
+    arm.gotoCartesianPoint([1, 0, 0], [0, -90, 0], 5)
     arm.openHand()
-    arm.gotoCartesianPoint([0, 1, 0], [0, -90, 0])
-    records = arm.recordArm(1, 20)
-    arm.playArmRecord(records["jointPosition"], 20)
+    arm.gotoCartesianPoint([0, 1, 0], [0, -90, 0], 5)
+    records = arm.recordArm(5, 20)
+    arm.gotoCartesianPoint([1, 0, 0], [0, -90, 0], 5)
+    arm.playArmRecord(records)
