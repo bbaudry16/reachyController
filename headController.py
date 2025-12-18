@@ -1,6 +1,7 @@
 from reachy_sdk import trajectory, ReachySDK
 import time
 import consoleManager as cm
+import timeSerieManager as ts
 
 class ReachyDisk():
     def __init__(self, maxAngleEuler : float, minAngleEuler : float):
@@ -32,17 +33,17 @@ class ReachyHead():
     def lookAt(self, degAngles : list, duration : float = 1) -> None:
         self._reachyHead.look_at(x=degAngles[0], y=degAngles[1], z=degAngles[2], duration=duration)
 
-    def recordHead(self, recordDurationSeconds : float, samplingFrequencyHertz : float) -> dict:
+    def recordHead(self, recordDurationSeconds : float, samplingFrequencyHertz : float) -> "ts.TimeSeries":
         """
         record all head position during recordDurationSeconds second(s) with a sampling frequency of samplingFrequencySeconds
         PARAMETER recordDurationSeconds TYPE float, samplingFrequencySeconds TYPE float
-        RETURN dict
+        RETURN ts.TimeSeries
         """
         trajectories = []
         samplingTime : float = 1.0 / samplingFrequencyHertz
         start = time.time()
 
-        cm.MKprint("start recording the head for " + str(recordDurationSeconds) + "s with a sampling frequency of " + str(samplingFrequencyHertz) + "Hz.", ReachyHead.CLASS_NAME, ReachyHead.CLASS_COLOR)
+        cm.MKprint("start recording head joints for " + str(recordDurationSeconds) + "s with a sampling frequency of " + str(samplingFrequencyHertz) + "Hz.", ReachyHead.CLASS_NAME, ReachyHead.CLASS_COLOR)
 
         while (time.time() - start) < recordDurationSeconds:
             current_point = {name: joint.present_position for name, joint in self._disks.items()}
@@ -50,27 +51,34 @@ class ReachyHead():
 
             time.sleep(samplingTime)
         
-        cm.MKprint("records for head done !", ReachyHead.CLASS_NAME, ReachyHead.CLASS_COLOR)
+        cm.MKprint("records for head joints done !", ReachyHead.CLASS_NAME, ReachyHead.CLASS_COLOR)
 
 
-        return {"samplingFrequency" : samplingFrequencyHertz, "recordDuration" : recordDurationSeconds, "startTime" : start, "diskPosition" : trajectories}
-    
-    def playHeadRecord(self, record : list, samplingFrequencyHertz : float, startDuration : float = 3.0) -> None:
+        return ts.TimeSeries(samplingFrequencyHertz, recordDurationSeconds, trajectories)
+
+    def playHeadRecord(self, record : "ts.TimeSeries", startDuration : float = 3.0) -> None:
         """
-        play record from an arm, you need to specify the semplingFrequencySeconds. startDuration is used to set the time reachy will take to go to the start position
-        PARAMETER record TYPE list, samplingFrequencySeconds TYPE float, startDuration TYPE float
+        play record for head, you need to specify the semplingFrequencySeconds. startDuration is used to set the time reachy will take to go to the start position
+        PARAMETER record TYPE ts.TimeSeries, startDuration TYPE float
         RETURN None
         """
-        firstPoint = { self._disks[name]: pos for name, pos in record[0].items() }
+        def firstPoint() -> dict:
+            r : dict = {}
+            for m in record.jointPosition[0].keys():
+                if m in self._disks.keys():
+                    r[self._disks[m]] = record.jointPosition[0][m]
+            return r
+        
+        firstPoint = firstPoint()
 
-        samplingTime : float = 1.0/samplingFrequencyHertz
+        samplingTime : float = 1.0/record.samplingFrequency
 
-        cm.MKprint("start playing records for head with a sampling frequency of " + str(samplingTime) + "s.", ReachyHead.CLASS_NAME, ReachyHead.CLASS_COLOR)
+        cm.MKprint("start playing records for head joints with a sampling frequency of " + str(samplingTime) + "hz.", ReachyHead.CLASS_NAME, ReachyHead.CLASS_COLOR)
 
 
         trajectory.goto(firstPoint, duration=startDuration)
 
-        for jointsPositions in record:
+        for jointsPositions in record.jointPosition:
             for joint_name, pos in jointsPositions.items():
                 if joint_name in self._disks.keys():
                     self._disks[joint_name].goal_position = pos
@@ -83,5 +91,4 @@ if __name__ == "__main__":
     head = ReachyHead(reachy)
     head.lookAt([3, 2, 0])
     a = head.recordHead(1, 20)
-    print(a)
-    head.playHeadRecord(a["diskPosition"], 20)
+    head.playHeadRecord(a, 20)

@@ -2,6 +2,7 @@ from reachy_sdk import ReachySDK
 import armController as ac
 import headController as hc
 import consoleManager as cm
+import timeSerieManager as ts
 from concurrent.futures import ThreadPoolExecutor
 import time
 import json
@@ -21,15 +22,13 @@ class ReachyController():
         self.armRight = ac.ReachyArm(self.reachy, ReachyController.ARM_RIGHT_ID)
         self.head = hc.ReachyHead(self.reachy)
 
-    def record(self, recordDurationSeconds : float, samplingFrequencyHertz : float, recordArmLeft : bool = True, recordArmRight : bool = True, recordHead : bool = True) -> dict:
+    def record(self, recordDurationSeconds : float, samplingFrequencyHertz : float, recordArmLeft : bool = True, recordArmRight : bool = True, recordHead : bool = True) -> "ts.TimeSeries":
         """
         record all part of reachy for a set duration with a sampling frequency of samplingFrequencyHertz Hz. rightArm and leftArm control if an arm is recorded or not; true -> recorded, false -> ignored
         PARAMETER samplingFrenquencyHertz TYPE float, duration TYPE float, recordArmRight TYPE bool, recordArmLeft TYPE bool, recordHead TYPE bool
         RETURN dict
         """
-        start : float = time.time()
-        r : dict = {"samplingFrequency" : samplingFrequencyHertz, "recordDuration" : recordDurationSeconds, "startTime" : start}
-        
+
         cm.MKprint("|-------------------- Start recording reachy joints ------------------|", ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
         cm.MKprint("recording left hand : " + str(recordArmLeft) + ", recording right hand : " + str(recordArmRight) + ", recording head : " + str(recordHead), ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
 
@@ -48,36 +47,47 @@ class ReachyController():
             if recordHead:
                 headRecord = future_h.result()
 
-        
-        if recordArmLeft:
-            r["armLeftRecords"] = {"jointPosition" : lArmRecord["jointPosition"], "handPosition" : lArmRecord["handPosition"]}
-        if recordArmRight:
-            r["armRightRecords"] = {"jointPosition" : rArmRecord["jointPosition"], "handPosition" : rArmRecord["handPosition"]}
-        if recordHead:
-            r["headRecords"] = {"diskPosition" : headRecord["diskPosition"]}
+        r : "ts.TimeSeries"
+        #say hello to my ugly as hell code
+        if recordArmLeft or recordArmRight or recordHead:
+            if recordArmLeft:
+                r = lArmRecord
+                if recordArmRight:
+                    r = r + rArmRecord
+                if recordHead:
+                    r = r + headRecord
+            
+            elif recordArmRight:
+                r = rArmRecord
+                if recordArmLeft:
+                    r = r + lArmRecord
+                if recordHead:
+                    r = r + headRecord
+            
+            elif recordHead:
+                r = headRecord
+                if recordArmLeft:
+                    r = r + lArmRecord
+                if recordArmRight:
+                    r = r + rArmRecord
+        else:
+            raise("you need to record at least one part !")
         
         cm.MKprint("|-------------------- Stop recording reachy joints ------------------|", ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
 
         return r
     
-    def playRecord(self, records : dict, startDuration : float = 3.0) -> None:
+    def playRecord(self, records : "ts.TimeSeries", startDuration : float = 3.0) -> None:
         """
         play record generated from self.record
-        PARAMETER records TYPE list, startDuration TYPE float
+        PARAMETER records TYPE ts.TimeSeries, startDuration TYPE float
         RETURN None
         """
-        leftArm : bool = "armLeftRecords" in records.keys()
-        rightArm : bool = "armRightRecords" in records.keys()
-        head : bool = "headRecords" in records.keys()
-
         cm.MKprint("|-------------------- Start playing reachy records ------------------|", ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
         with ThreadPoolExecutor(max_workers=3) as executor:
-            if leftArm:
-                executor.submit(self.armLeft.playArmRecord, records["armLeftRecords"]["jointPosition"], records["samplingFrequency"], startDuration)
-            if rightArm:
-                executor.submit(self.armRight.playArmRecord, records["armRightRecords"]["jointPosition"], records["samplingFrequency"], startDuration)
-            if head:
-                executor.submit(self.head.playHeadRecord, records["headRecords"]["diskPosition"], records["samplingFrequency"], startDuration)
+            executor.submit(self.armLeft.playArmRecord, records, startDuration)
+            executor.submit(self.armRight.playArmRecord, records, startDuration)
+            executor.submit(self.head.playHeadRecord, records, startDuration)
         cm.MKprint("|-------------------- Stop playing reachy records ------------------|", ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
 
 
@@ -105,7 +115,5 @@ class ReachyController():
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     reachyC = ReachyController(reachy)
-    a = reachyC.record(1, 20)
-    reachyC.saveRecordsInJson(a, "a.json")
-    b = reachyC.loadRecordsFromJson("a.json")
-    reachyC.playRecord(b)
+    a = reachyC.record(5, 20)
+    reachyC.playRecord(a)

@@ -8,12 +8,15 @@ class TimeSeries():
     def __add__(self, ts : "TimeSeries"):
         if self.samplingFrequency != ts.samplingFrequency:
             raise("you cannot add time series with different sampling frequency /!\\")
-        def addList(d0 : list, d1 : list):
+        def addList(d0 : list, d1 : list) -> list:
             if len(d0) < len(d1):
                 d1, d0 = d0, d1
             for i in range(len(d1)):
                 d0[i].update(d1[i])
+            return d0
 
         
         duration : float = max(self.recordDuration, ts.recordDuration)
         r : "TimeSeries" = TimeSeries(self.samplingFrequency, duration, addList(self.jointPosition, ts.jointPosition))
+
+        return r
