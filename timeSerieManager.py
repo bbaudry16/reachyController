@@ -1,4 +1,10 @@
 import json
+import matplotlib.pyplot as plt
+
+import numpy as np
+
+import headController as hc
+import armController as arm
 
 class TimeSeries():
 
@@ -46,3 +52,47 @@ class TimeSeries():
             raise "Cannot open file " + fileName
         dictJson = self.jsonToDict(file.read())
         return dictJson
+    
+    def plot(self):
+        if not self.jointPosition:
+            raise ValueError("jointPosition is empty")
+
+        sample = {name: [] for name in self.jointPosition[0].keys()}
+        for frame in self.jointPosition:
+            for name in frame.keys():
+                sample[name].append(frame[name])
+
+        sampleCount = min(len(self.jointPosition), *(len(v) for v in sample.values()))
+        time = [i / self.samplingFrequency for i in range(sampleCount)]
+
+        for key in sample:
+            sample[key] = sample[key][:sampleCount]
+
+        fig, axs = plt.subplots(3, 3, figsize=(15, 10))
+        axs = axs.flatten()
+
+        subplotMapping = [
+            (2, hc.ReachyHead.DISK_MOTOR_NAME, "Head motors angles"),
+            (5, hc.ReachyHead.ANTENNA_MOTOR_NAME, "Antenna motors angles"),
+            (0, ["r_" + i for i in arm.ReachyArm.SHOULDER_MOTOR_NAME], "Right shoulder motors angles"),
+            (3, ["r_" + i for i in arm.ReachyArm.ELBOW_MOTOR_NAME], "Right elbow motors angles"),
+            (6, ["r_" + i for i in arm.ReachyArm.FOREARM_MOTOR_NAME], "Right forearm motors angles"),
+            (1, ["l_" + i for i in arm.ReachyArm.SHOULDER_MOTOR_NAME], "Left shoulder motors angles"),
+            (4, ["l_" + i for i in arm.ReachyArm.ELBOW_MOTOR_NAME], "Left elbow motors angles"),
+            (7, ["l_" + i for i in arm.ReachyArm.FOREARM_MOTOR_NAME], "Left forearm motors angles"),
+        ]
+
+        for idx, motors, title in subplotMapping:
+            ax = axs[idx]
+            for m in motors:
+                if m in sample:
+                    ax.plot(time, sample[m], label=m)
+            ax.set_title(title)
+            ax.legend(fontsize=8)
+            ax.grid(True)
+
+
+        axs[8].axis("off")
+
+        plt.tight_layout()
+        plt.show()

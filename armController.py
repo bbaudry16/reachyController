@@ -22,7 +22,10 @@ class ReachyArm():
     JOINT_GRIPPER = ReachyJoint(20.0, -69.0)
     #name
     HAND_MOTOR_NAME : str = "gripper"
-    ARM_MOTOR_NAME : list = ["shoulder_pitch", "shoulder_roll", "arm_yaw", "elbow_pitch", "forearm_yaw", "wrist_pitch", "wrist_roll", HAND_MOTOR_NAME]
+    SHOULDER_MOTOR_NAME : list = ["shoulder_pitch", "shoulder_roll", "arm_yaw"]
+    ELBOW_MOTOR_NAME : list = ["elbow_pitch", "forearm_yaw"]
+    FOREARM_MOTOR_NAME : list = ["wrist_pitch", "wrist_roll", HAND_MOTOR_NAME]
+    ARM_MOTOR_NAME : list = SHOULDER_MOTOR_NAME + ELBOW_MOTOR_NAME + FOREARM_MOTOR_NAME
     ARM_NAME : str = "arm"
     #console manager
     CLASS_NAME : str = "Reachy arm"

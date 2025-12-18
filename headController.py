@@ -12,11 +12,16 @@ class ReachyHead():
 
     #name
     ANTENNA_MOTOR_NAME : str = ["l_antenna", "r_antenna"]
-    HEAD_MOTOR_NAME : list = ["neck_roll", "neck_pitch", "neck_yaw"] + ANTENNA_MOTOR_NAME
+    DISK_MOTOR_NAME : str = ["neck_roll", "neck_pitch", "neck_yaw"]
+    HEAD_MOTOR_NAME : list = DISK_MOTOR_NAME + ANTENNA_MOTOR_NAME
     #console
     CLASS_NAME : str = "Reachy head"
     CLASS_COLOR : str = cm.Color.YELLOW
-    
+
+    DISK_NECK_ROLL : ReachyDisk = ReachyDisk(60, -60)
+    DISK_NECK_PITCH : ReachyDisk = ReachyDisk(60, -60)
+    DISK_NECK_YAW : ReachyDisk = ReachyDisk(360, 0)
+
     def __init__(self, reachy : ReachySDK):
         self._reachyHead = reachy.head
         self._disks = self._setupDisks()

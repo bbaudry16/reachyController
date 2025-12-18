@@ -92,5 +92,7 @@ class ReachyController():
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     reachyC = ReachyController(reachy)
+    reachyC.head.lookAt([3, 5, 2])
     a = reachyC.record(5, 20)
+    a.plot()
     reachyC.playRecord(a)
