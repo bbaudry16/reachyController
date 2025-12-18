@@ -1,3 +1,5 @@
+import json
+
 class TimeSeries():
 
     def __init__(self, samplingFrequency : float, recordDurationSeconds : float, jointPosition : list = []):
@@ -20,3 +22,27 @@ class TimeSeries():
         r : "TimeSeries" = TimeSeries(self.samplingFrequency, duration, addList(self.jointPosition, ts.jointPosition))
 
         return r
+    
+    def getDictFromTimeSerie(self) -> dict:
+        return {"samplingFrequency" : self.samplingFrequency, "recordDuration" : self.recordDuration, "jointPosition" : self.jointPosition}
+
+    def dictToJson(self, dict : dict) -> str:
+        return json.dumps(dict, indent=4)
+    
+    def jsonToDict(self, jsonString : str) -> dict:
+        return json.loads(jsonString)
+    
+    def saveRecordsInJson(self, fileName : str) -> None:
+        file = open(fileName, mode="w")
+        if not file:
+            raise "Cannot open file " + fileName
+        
+        file.write(self.dictToJson(self.getDictFromTimeSerie()))
+        file.close()
+
+    def loadRecordsFromJson(self, fileName : str) -> dict:
+        file = open(fileName, mode="r")
+        if not file:
+            raise "Cannot open file " + fileName
+        dictJson = self.jsonToDict(file.read())
+        return dictJson

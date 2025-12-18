@@ -4,8 +4,7 @@ import headController as hc
 import consoleManager as cm
 import timeSerieManager as ts
 from concurrent.futures import ThreadPoolExecutor
-import time
-import json
+
 
 class ReachyController():
     #arm id
@@ -89,28 +88,6 @@ class ReachyController():
             executor.submit(self.armRight.playArmRecord, records, startDuration)
             executor.submit(self.head.playHeadRecord, records, startDuration)
         cm.MKprint("|-------------------- Stop playing reachy records ------------------|", ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
-
-
-    def dictToJson(self, dict : dict) -> str:
-        return json.dumps(dict, indent=4)
-    
-    def jsonToDict(self, jsonString : str) -> dict:
-        return json.loads(jsonString)
-    
-    def saveRecordsInJson(self,record : dict, fileName : str) -> None:
-        file = open(fileName, mode="w")
-        if not file:
-            raise "Cannot open file " + fileName
-        
-        file.write(self.dictToJson(record))
-        file.close()
-
-    def loadRecordsFromJson(self, fileName : str) -> dict:
-        file = open(fileName, mode="r")
-        if not file:
-            raise "Cannot open file " + fileName
-        dictJson = self.jsonToDict(file.read())
-        return dictJson
 
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
