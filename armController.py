@@ -141,7 +141,8 @@ class ReachyArm():
 
         for jointsPositions in record:
             for joint_name, pos in jointsPositions.items():
-                self._joints[joint_name].goal_position = pos
+                if joint_name in self._joints.keys():
+                    self._joints[joint_name].goal_position = pos
             time.sleep(samplingTime)
 
         return None
