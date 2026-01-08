@@ -33,31 +33,36 @@ class ReachyArm():
     CLASS_COLOR : str = cm.Color.CYAN
 
     def __init__(self, _reachy : ReachySDK, _armID : str) -> None:
+        
         self._armID : str = _armID
+        self._setupConstraints()
+        
         self._reachyArm = getattr(_reachy, self._getNameByArmSide(ReachyArm.ARM_NAME))
         self._joints : dict = self._setupJoints()
 
         self._joint_constraints = {
-        self._getNameByArmSide("shoulder_pitch"): ReachyArm.JOINT_SHOULDER_PITCH,
-        self._getNameByArmSide("shoulder_roll"): ReachyArm.JOINT_SHOULDER_ROLL,
-        self._getNameByArmSide("arm_yaw"): ReachyArm.JOINT_ARM_YAW,
-        self._getNameByArmSide("elbow_pitch"): ReachyArm.JOINT_ELBOW_PITCH,
-        self._getNameByArmSide("forearm_yaw"): ReachyArm.JOINT_FOREARM_YAW,
-        self._getNameByArmSide("wrist_pitch"): ReachyArm.JOINT_WRIST_PITCH,
-        self._getNameByArmSide("wrist_roll"): ReachyArm.JOINT_WRIST_ROLL,
-        self._getNameByArmSide("gripper"): ReachyArm.JOINT_GRIPPER,
+        self._getNameByArmSide("shoulder_pitch"): self.JOINT_SHOULDER_PITCH,
+        self._getNameByArmSide("shoulder_roll"): self.JOINT_SHOULDER_ROLL,
+        self._getNameByArmSide("arm_yaw"): self.JOINT_ARM_YAW,
+        self._getNameByArmSide("elbow_pitch"): self.JOINT_ELBOW_PITCH,
+        self._getNameByArmSide("forearm_yaw"): self.JOINT_FOREARM_YAW,
+        self._getNameByArmSide("wrist_pitch"): self.JOINT_WRIST_PITCH,
+        self._getNameByArmSide("wrist_roll"): self.JOINT_WRIST_ROLL,
+        self._getNameByArmSide("gripper"): self.JOINT_GRIPPER,
         }
 
         return None
 
-
-    def _setupJoints(self) -> dict:
-        r : list = {}
-
+    def _setupConstraints(self) -> None:
         if self._armID == ReachyArm.ARM_LEFT_ID:
             self.JOINT_SHOULDER_ROLL = ReachyJoint(-10.0, 180.0)
             self.JOINT_WRIST_ROLL = ReachyJoint(-35, 55)
             self.JOINT_GRIPPER = ReachyJoint(-20.0, 69)
+
+
+    def _setupJoints(self) -> dict:
+        r : dict = {}
+
         for jointName in ReachyArm.ARM_MOTOR_NAME:
             _jointsidedName : str = self._getNameByArmSide(jointName)  
             joint = getattr(self._reachyArm, _jointsidedName)
@@ -70,6 +75,18 @@ class ReachyArm():
         if value < min_v or value > max_v:
             cm.MKprint(cm.Color.RED + f"[SAFETY] {jointName} clamped to {r}" + cm.Color.RESET, ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
         return r
+    
+    def _safeGoto(self, joint_dict : dict, duration : float, interpolation):
+        safe_dict = {}
+        for joint, pos in joint_dict.items():
+            name = joint.name
+            if name in self._joint_constraints:
+                limits = self._joint_constraints[name]
+                pos = self._clamp(name, pos, limits.minAngle, limits.maxAngle)
+            safe_dict[joint] = pos
+
+        trajectory.goto(safe_dict, duration=duration, interpolation_mode=interpolation)
+
 
     def _getNameByArmSide(self, name : str) -> str:
         return self._armID + "_" + name
@@ -104,19 +121,10 @@ class ReachyArm():
         IKMatrix : list = self._getIKMatrix(goalPosition, goalRotation)
         jointPos = self._reachyArm.inverse_kinematics(IKMatrix)
         
-        safe_positions = {}
-
-        for joint, pos in zip(self._reachyArm.joints.values(), jointPos):
-            joint_name = joint.name
-            
-            if joint_name in self._joint_constraints:
-                limits = self._joint_constraints[joint_name]
-                pos = self._clamp(joint_name, pos, limits.minAngle, limits.maxAngle)
-
-            safe_positions[joint] = pos
+        
         
         cm.MKprint("Going to " + str(goalPosition) + " with rotation " + str(goalRotation) + " in " + str(duration) + "s.", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
-        trajectory.goto(safe_positions , duration=duration, interpolation_mode=interpolation)
+        self._safeGoto({joint: pos for joint,pos in zip(self._reachyArm.joints.values(), jointPos)}, duration=duration, interpolation=interpolation)
 
         return None
 
@@ -127,7 +135,7 @@ class ReachyArm():
         
         safe_angle = self._clamp(gripperJointName, angleEuler, ReachyArm.JOINT_GRIPPER.minAngle, ReachyArm.JOINT_GRIPPER.maxAngle)
 
-        trajectory.goto({gripperJoint: safe_angle}, duration=duration)
+        self._safeGoto({gripperJoint: safe_angle}, duration=duration)
 
     def openHand(self, duration = 0.5) -> None:
         self.changeHandAngle(self.JOINT_GRIPPER.minAngle, duration)
@@ -158,34 +166,44 @@ class ReachyArm():
 
 
         return ts.TimeSeries(samplingFrequencyHertz, recordDurationSeconds, trajectories)
-
-    def playArmRecord(self, record : "ts.TimeSeries", startDuration : float = 3.0) -> None:
+    
+    def playArmRecord(self, record: "ts.TimeSeries", startDuration: float = 3.0) -> None:
         """
         play record from an arm, you need to specify the semplingFrequencySeconds. startDuration is used to set the time reachy will take to go to the start position
         PARAMETER record TYPE ts.TimeSeries, startDuration TYPE float
         RETURN None
         """
-        def firstPoint() -> dict:
-            r : dict = {}
-            for m in record.jointPosition[0].keys():
-                if m in self._joints.keys():
-                    r[self._joints[m]] = record.jointPosition[0][m]
-            return r
-        
-        firstPoint = firstPoint()
+        def firstPoint():
+            return {
+                self._joints[m]: pos
+                for m, pos in record.jointPosition[0].items()
+                if m in self._joints
+            }
 
-        samplingTime : float = 1.0/record.samplingFrequency
+        samplingTime = 1.0 / record.samplingFrequency
 
-        cm.MKprint("start playing records for arm " + self._getNameByArmSide(ReachyArm.ARM_NAME) + " with a sampling frequency of " + str(samplingTime) + "hz.", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+        cm.MKprint(
+            "start playing records for arm "
+            + self._getNameByArmSide(ReachyArm.ARM_NAME),
+            ReachyArm.CLASS_NAME,
+            ReachyArm.CLASS_COLOR
+        )
 
-
-        trajectory.goto(firstPoint, duration=startDuration)
+        self._safeGoto(firstPoint(), duration=startDuration)
 
         for jointsPositions in record.jointPosition:
+            safe_step = {}
+
             for joint_name, pos in jointsPositions.items():
-                if joint_name in self._joints.keys():
-                    self._joints[joint_name].goal_position = pos
-            time.sleep(samplingTime)
+                if joint_name in self._joints:
+                    joint = self._joints[joint_name]
+                    safe_step[joint] = pos
+
+            self._safeGoto(
+                safe_step,
+                duration=samplingTime,
+                interpolation=trajectory.interpolation.linear
+            )
 
         return None
     
