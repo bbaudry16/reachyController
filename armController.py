@@ -4,7 +4,6 @@ from scipy.spatial.transform import Rotation as R
 import consoleManager as cm
 import time
 import timeSerieManager as ts
-import asyncio
 
 class ReachyJoint():
     def __init__(self, maxAngleEuler : float, minAngleEuler : float):
@@ -13,13 +12,13 @@ class ReachyJoint():
 
 class ReachyArm():
     #contraint
-    JOINT_SHOULDER_PITCH = ReachyJoint(90.0, -180.0)
+    JOINT_SHOULDER_PITCH = ReachyJoint(90.0, -150.0)
     JOINT_SHOULDER_ROLL = ReachyJoint(10.0, -180.0)
     JOINT_ARM_YAW = ReachyJoint(90.0, -90.0)
     JOINT_ELBOW_PITCH = ReachyJoint(0.0, -125.0)
     JOINT_FOREARM_YAW = ReachyJoint(100.0, -100.0)
     JOINT_WRIST_PITCH = ReachyJoint(45.0, -45.0)
-    JOINT_WRIST_ROLL = ReachyJoint(45.0, -45.0)
+    JOINT_WRIST_ROLL = ReachyJoint(35, -55)
     JOINT_GRIPPER = ReachyJoint(20.0, -69.0)
     #name
     HAND_MOTOR_NAME : str = "gripper"
@@ -28,6 +27,7 @@ class ReachyArm():
     FOREARM_MOTOR_NAME : list = ["wrist_pitch", "wrist_roll", HAND_MOTOR_NAME]
     ARM_MOTOR_NAME : list = SHOULDER_MOTOR_NAME + ELBOW_MOTOR_NAME + FOREARM_MOTOR_NAME
     ARM_NAME : str = "arm"
+    ARM_LEFT_ID : str = "l"
     #console manager
     CLASS_NAME : str = "Reachy arm"
     CLASS_COLOR : str = cm.Color.CYAN
@@ -36,13 +36,16 @@ class ReachyArm():
         self._armID : str = _armID
         self._reachyArm = getattr(_reachy, self._getNameByArmSide(ReachyArm.ARM_NAME))
         self._joints : dict = self._setupJoints()
-
         return None
 
 
     def _setupJoints(self) -> dict:
         r : list = {}
 
+        if self._armID == ReachyArm.ARM_LEFT_ID:
+            self.JOINT_SHOULDER_ROLL = ReachyJoint(-10.0, 180.0)
+            self.JOINT_WRIST_ROLL = ReachyJoint(-35, 55)
+            self.JOINT_GRIPPER = ReachyJoint(-20.0, 69)
         for jointName in ReachyArm.ARM_MOTOR_NAME:
             _jointsidedName : str = self._getNameByArmSide(jointName)  
             joint = getattr(self._reachyArm, _jointsidedName)
@@ -96,17 +99,10 @@ class ReachyArm():
 
 
     def openHand(self, duration = 0.5) -> None:
-        self.changeHandAngle(ReachyArm.JOINT_GRIPPER.minAngle, duration)
-
-
-    async def _openHandAsync(self, duration = 0.5) -> None:
-        self.openHand(duration=duration)
-    
-    def openHandAsync(self, duration = 0.5) -> None:
-        asyncio.run(self._openHandAsync(duration))
+        self.changeHandAngle(self.JOINT_GRIPPER.minAngle, duration)
 
     def closeHand(self, duration = 0.5) -> None:
-        self.changeHandAngle(ReachyArm.JOINT_GRIPPER.maxAngle, duration)
+        self.changeHandAngle(self.JOINT_GRIPPER.maxAngle, duration)
 
 
     def recordArm(self, recordDurationSeconds : float, samplingFrequencyHertz : float) -> "ts.TimeSeries":
