@@ -15,11 +15,16 @@ class ReachyController():
     CLASS_NAME : str = "Reachy controller"
     CLASS_COLOR : str = cm.Color.BRIGHT_RED
 
+    _executor = ThreadPoolExecutor(max_workers=10)
+
     def __init__(self, reachy : ReachySDK):
         self.reachy = reachy
         self.armLeft = ac.ReachyArm(self.reachy, ReachyController.ARM_LEFT_ID)
         self.armRight = ac.ReachyArm(self.reachy, ReachyController.ARM_RIGHT_ID)
         self.head = hc.ReachyHead(self.reachy)
+
+    def runAsync(self, func, *args):
+        self._executor.submit(func, *args)
 
     def record(self, recordDurationSeconds : float, samplingFrequencyHertz : float, recordArmLeft : bool = True, recordArmRight : bool = True, recordHead : bool = True) -> "ts.TimeSeries":
         """
@@ -92,7 +97,8 @@ class ReachyController():
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     reachyC = ReachyController(reachy)
-    reachyC.head.lookAt([3, 5, 2])
+    reachyC.runAsync(reachyC.armLeft.openHandAsync, 5)
+    reachyC.runAsync(reachyC.armLeft.gotoCartesianPoint, [3, 5, -2], [0, -90, 0], 5)
     a = reachyC.record(5, 20)
     a.plot()
     reachyC.playRecord(a)

@@ -4,6 +4,7 @@ from scipy.spatial.transform import Rotation as R
 import consoleManager as cm
 import time
 import timeSerieManager as ts
+import asyncio
 
 class ReachyJoint():
     def __init__(self, maxAngleEuler : float, minAngleEuler : float):
@@ -97,6 +98,12 @@ class ReachyArm():
     def openHand(self, duration = 0.5) -> None:
         self.changeHandAngle(ReachyArm.JOINT_GRIPPER.minAngle, duration)
 
+
+    async def _openHandAsync(self, duration = 0.5) -> None:
+        self.openHand(duration=duration)
+    
+    def openHandAsync(self, duration = 0.5) -> None:
+        asyncio.run(self._openHandAsync(duration))
 
     def closeHand(self, duration = 0.5) -> None:
         self.changeHandAngle(ReachyArm.JOINT_GRIPPER.maxAngle, duration)
