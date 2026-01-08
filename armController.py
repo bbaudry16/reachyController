@@ -53,6 +53,11 @@ class ReachyArm():
         
         return r
     
+    def _clamp(self, jointName : str, value: float, min_v: float, max_v: float) -> float:
+        r : float = max(min(value, max_v), min_v)
+        if value < min_v or value > max_v:
+            cm.MKprint(cm.Color.RED + f"[SAFETY] {jointName} clamped to {r}" + cm.Color.RESET, ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+        return r
 
     def _getNameByArmSide(self, name : str) -> str:
         return self._armID + "_" + name
@@ -95,8 +100,10 @@ class ReachyArm():
     def changeHandAngle(self, angleEuler : float, duration : float) -> None:
         gripperJointName = self._getNameByArmSide(ReachyArm.HAND_MOTOR_NAME)
         gripperJoint = self._joints[gripperJointName]
-        trajectory.goto({gripperJoint : angleEuler}, duration=duration)
+        
+        safe_angle = self._clamp(gripperJointName, angleEuler, ReachyArm.JOINT_GRIPPER.minAngle, ReachyArm.JOINT_GRIPPER.maxAngle)
 
+        trajectory.goto({gripperJoint: safe_angle}, duration=duration)
 
     def openHand(self, duration = 0.5) -> None:
         self.changeHandAngle(self.JOINT_GRIPPER.minAngle, duration)

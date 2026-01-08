@@ -97,9 +97,12 @@ class ReachyController():
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     reachyC = ReachyController(reachy)
-    reachyC.runAsync(reachyC.armRight.openHand, 5)
-    reachyC.runAsync(reachyC.armLeft.openHand, 5)
-    #reachyC.runAsync(reachyC.armRight.gotoCartesianPoint, [3, 5, -2], [0, -90, 0], 5)
-    a = reachyC.record(5, 20, True, True, False)
-    a.plot()
-    reachyC.playRecord(a)
+    reachyC.armRight.changeHandAngle(0, 1)
+    reachyC.armRight.changeHandAngle(-70, 1)
+
+    #reachyC.runAsync(reachyC.armLeft.openHand, 5)
+    #reachyC.runAsync(reachyC.armRight.gotoCartesianPoint, [3, -5, -2], [0, -90, 0], 5)
+    #reachyC.runAsync(reachyC.armLeft.gotoCartesianPoint, [3, 5, -2], [0, 90, 0], 5)
+    #a = reachyC.record(5, 20)
+    #a.plot()
+    #reachyC.playRecord(a)
