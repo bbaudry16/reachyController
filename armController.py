@@ -36,6 +36,18 @@ class ReachyArm():
         self._armID : str = _armID
         self._reachyArm = getattr(_reachy, self._getNameByArmSide(ReachyArm.ARM_NAME))
         self._joints : dict = self._setupJoints()
+
+        self._joint_constraints = {
+        self._getNameByArmSide("shoulder_pitch"): ReachyArm.JOINT_SHOULDER_PITCH,
+        self._getNameByArmSide("shoulder_roll"): ReachyArm.JOINT_SHOULDER_ROLL,
+        self._getNameByArmSide("arm_yaw"): ReachyArm.JOINT_ARM_YAW,
+        self._getNameByArmSide("elbow_pitch"): ReachyArm.JOINT_ELBOW_PITCH,
+        self._getNameByArmSide("forearm_yaw"): ReachyArm.JOINT_FOREARM_YAW,
+        self._getNameByArmSide("wrist_pitch"): ReachyArm.JOINT_WRIST_PITCH,
+        self._getNameByArmSide("wrist_roll"): ReachyArm.JOINT_WRIST_ROLL,
+        self._getNameByArmSide("gripper"): ReachyArm.JOINT_GRIPPER,
+        }
+
         return None
 
 
@@ -91,8 +103,20 @@ class ReachyArm():
     def gotoCartesianPoint(self, goalPosition : list, goalRotation : list, duration : float = 0.1, interpolation = trajectory.interpolation.linear) -> None:
         IKMatrix : list = self._getIKMatrix(goalPosition, goalRotation)
         jointPos = self._reachyArm.inverse_kinematics(IKMatrix)
+        
+        safe_positions = {}
+
+        for joint, pos in zip(self._reachyArm.joints.values(), jointPos):
+            joint_name = joint.name
+            
+            if joint_name in self._joint_constraints:
+                limits = self._joint_constraints[joint_name]
+                pos = self._clamp(joint_name, pos, limits.minAngle, limits.maxAngle)
+
+            safe_positions[joint] = pos
+        
         cm.MKprint("Going to " + str(goalPosition) + " with rotation " + str(goalRotation) + " in " + str(duration) + "s.", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
-        trajectory.goto({joint: pos for joint,pos in zip(self._reachyArm.joints.values(), jointPos)}, duration=duration, interpolation_mode=interpolation)
+        trajectory.goto(safe_positions , duration=duration, interpolation_mode=interpolation)
 
         return None
 
