@@ -20,6 +20,9 @@ class ReachyArm():
     JOINT_WRIST_PITCH = ReachyJoint(45.0, -45.0)
     JOINT_WRIST_ROLL = ReachyJoint(35, -55)
     JOINT_GRIPPER = ReachyJoint(20.0, -69.0)
+    #arm size
+    SHOULDER_TO_ELBOW : float = 0.28
+    ELBOW_TO_WRIST : float = 0.25 
     #name
     HAND_MOTOR_NAME : str = "gripper"
     SHOULDER_MOTOR_NAME : list = ["shoulder_pitch", "shoulder_roll", "arm_yaw"]
@@ -55,9 +58,9 @@ class ReachyArm():
 
     def _setupConstraints(self) -> None:
         if self._armID == ReachyArm.ARM_LEFT_ID:
-            self.JOINT_SHOULDER_ROLL = ReachyJoint(-10.0, 180.0)
-            self.JOINT_WRIST_ROLL = ReachyJoint(-35, 55)
-            self.JOINT_GRIPPER = ReachyJoint(-20.0, 69)
+            self.JOINT_SHOULDER_ROLL = ReachyJoint(180.0 , -10.0)
+            self.JOINT_WRIST_ROLL = ReachyJoint(55, -35)
+            self.JOINT_GRIPPER = ReachyJoint(69, -20)
 
 
     def _setupJoints(self) -> dict:
@@ -76,7 +79,7 @@ class ReachyArm():
             cm.MKprint(cm.Color.RED + f"[SAFETY] {jointName} clamped to {r}" + cm.Color.RESET, ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
         return r
     
-    def _safeGoto(self, joint_dict : dict, duration : float, interpolation):
+    def _safeGoto(self, joint_dict : dict, duration : float, interpolation = trajectory.interpolation.linear):
         safe_dict = {}
         for joint, pos in joint_dict.items():
             name = joint.name
@@ -207,12 +210,39 @@ class ReachyArm():
 
         return None
     
+    def _forwardKinematics(self):
+
+        
+
+        sp = np.deg2rad(self._joints[self._getNameByArmSide("shoulder_pitch")].present_position)
+        sr = np.deg2rad(self._joints[self._getNameByArmSide("shoulder_roll")].present_position)
+        ep = np.deg2rad(self._joints[self._getNameByArmSide("elbow_pitch")].present_position)
+
+        shoulder = np.array([0.0, 0.0, 0.0])
+
+        elbow = shoulder + np.array([
+            ReachyArm.SHOULDER_TO_ELBOW * np.cos(sp) * np.cos(sr),
+            ReachyArm.SHOULDER_TO_ELBOW * np.sin(sr),
+            ReachyArm.SHOULDER_TO_ELBOW * np.sin(sp) * np.cos(sr),
+        ])
+
+        wrist = elbow + np.array([
+            ReachyArm.ELBOW_TO_WRIST * np.cos(sp + ep) * np.cos(sr),
+            ReachyArm.ELBOW_TO_WRIST * np.sin(sr),
+            ReachyArm.ELBOW_TO_WRIST * np.sin(sp + ep) * np.cos(sr),
+        ])
+
+        return {
+            "shoulder": shoulder,
+            "elbow": elbow,
+            "wrist": wrist,
+        }
+
+
+
+
+    
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     arm : ReachyArm = ReachyArm(reachy, "l")
-    arm.gotoCartesianPoint([1, 0, 0], [0, -90, 0], 5)
-    arm.openHand()
-    arm.gotoCartesianPoint([0, 1, 0], [0, -90, 0], 5)
-    records = arm.recordArm(5, 20)
-    arm.gotoCartesianPoint([1, 0, 0], [0, -90, 0], 5)
-    arm.playArmRecord(records)
+    print(arm._forwardKinematics())
