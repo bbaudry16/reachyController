@@ -4,6 +4,7 @@ from scipy.spatial.transform import Rotation as R
 import consoleManager as cm
 import time
 import timeSerieManager as ts
+import collisonBox as col
 
 class ReachyJoint():
     def __init__(self, maxAngleEuler : float, minAngleEuler : float):
@@ -53,6 +54,8 @@ class ReachyArm():
         self._getNameByArmSide("wrist_roll"): self.JOINT_WRIST_ROLL,
         self._getNameByArmSide("gripper"): self.JOINT_GRIPPER,
         }
+
+        self.collider = self.getCollisionCapsules()
 
         return None
 
@@ -237,6 +240,24 @@ class ReachyArm():
             "elbow": elbow,
             "wrist": wrist,
         }
+
+
+    def getCollisionCapsules(self) -> list:
+        """
+        Return a list of CapsuleCollider representing the arm collision geometry
+        """
+        fk = self._forwardKinematics()
+
+        shoulder = fk["shoulder"]
+        elbow = fk["elbow"]
+        wrist = fk["wrist"]
+
+        capsules = []
+
+        capsules.append(col.CapsuleCollider(pointA=shoulder, pointB=elbow, radius=0.05))
+        capsules.append(col.CapsuleCollider(pointA=elbow, pointB=wrist, radius=0.045))
+
+        return capsules
 
 
 
