@@ -214,6 +214,11 @@ class ReachyArm():
         return None
     
     def getShoulderDirection(self) -> list:
+        """
+        return the elbow position in meters in this form : [x, y, z] (remember z is up)
+        PARAMETER NONE
+        RETURN list
+        """
         
         L = self.SHOULDER_TO_ELBOW
 
@@ -237,18 +242,23 @@ class ReachyArm():
 
         v = Ry @ Rx @ v0
         return v.tolist()
-
     
+    def getHandposition(self) -> list:
+        """
+        return hand position in meter using forward kinematics in form [x, y, z] (remember z is up)
+        PARAMETER NONE
+        RETURN list
+        """
+        forwardKinematics = self._reachyArm.forward_kinematics()
+        return [forwardKinematics[0][3],forwardKinematics[1][3], forwardKinematics[2][3]]
+
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     arm : ReachyArm = ReachyArm(reachy, "l")
     arm.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 1)
-    print(arm.getShoulderDirection())
+    print(arm.getHandposition())
     arm.gotoCartesianPoint([-2, 0.19, 0], [0, -90, 0], 1)
-    print(arm.getShoulderDirection())
+    print(arm.getHandposition())
     arm.gotoCartesianPoint([0, 2, 0], [0, -90, 0], 1)
-    print(arm.getShoulderDirection())
-    arm.gotoCartesianPoint([0, 0.19, 2], [0, -90, 0], 1)
-    print(arm.getShoulderDirection())
-    arm.gotoCartesianPoint([0, 0.19, -2], [0, -90, 0], 1)
-    print(arm.getShoulderDirection())
+    print(arm.getHandposition())
+    
