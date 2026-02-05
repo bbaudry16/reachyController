@@ -23,6 +23,7 @@ class ReachyArm():
     JOINT_WRIST_ROLL = ReachyJoint(35, -55)
     JOINT_GRIPPER = ReachyJoint(20.0, -69.0)
     #arm size
+    ORIGIN_TO_SHOULDER : float = 0.19
     SHOULDER_TO_ELBOW : float = 0.28
     ELBOW_TO_WRIST : float = 0.25 
     #name
@@ -33,6 +34,8 @@ class ReachyArm():
     ARM_MOTOR_NAME : list = SHOULDER_MOTOR_NAME + ELBOW_MOTOR_NAME + FOREARM_MOTOR_NAME
     ARM_NAME : str = "arm"
     ARM_LEFT_ID : str = "l"
+    #collision
+    CAPSULE_COLLISION_RADIUS : float = 0.05
     #console manager
     CLASS_NAME : str = "Reachy arm"
     CLASS_COLOR : str = cm.Color.CYAN
@@ -213,17 +216,25 @@ class ReachyArm():
 
         return None
     
-    def getShoulderDirection(self) -> list:
+
+    def getShoulderPosition(self) -> list:
+        x = -self.ORIGIN_TO_SHOULDER
+        if self._armID == self.ARM_LEFT_ID:
+            x *= -1
+        return [x, 0, 0]
+
+
+    def getElbowPosition(self) -> list:
         """
         return the elbow position in meters in this form : [x, y, z] (remember z is up)
         PARAMETER NONE
         RETURN list
         """
-        
         L = self.SHOULDER_TO_ELBOW
 
         pitch = radians(self._joints[self._getNameByArmSide("shoulder_pitch")].present_position)
         roll  = radians(self._joints[self._getNameByArmSide("shoulder_roll")].present_position)
+        yaw = radians(self._joints[self._getNameByArmSide("arm_yaw")].present_position)
 
         Rx = np.array([
             [1, 0, 0],
@@ -231,19 +242,28 @@ class ReachyArm():
             [0, sin(roll), cos(roll)]
         ])
 
-
         Ry = np.array([
             [cos(pitch), 0, sin(pitch)],
             [0, 1, 0],
             [-sin(pitch), 0, cos(pitch)]
         ])
 
-        v0 = np.array([0, 0, -L])
+        Rz = np.array([
+            [cos(yaw), -sin(yaw), 0],
+            [sin(yaw), cos(yaw), 0],
+            [0, 0, 1]
+        ])
 
-        v = Ry @ Rx @ v0
-        return v.tolist()
+        v0 = np.array([0, 0, -L])
+        v_local = Rz @ Ry @ Rx @ v0
+
+        shoulder_world = np.array(self.getShoulderPosition())
+        elbow_world = shoulder_world + v_local
+
+        return elbow_world.tolist()
     
-    def getHandposition(self) -> list:
+    
+    def getHandPosition(self) -> list:
         """
         return hand position in meter using forward kinematics in form [x, y, z] (remember z is up)
         PARAMETER NONE
@@ -251,6 +271,17 @@ class ReachyArm():
         """
         forwardKinematics = self._reachyArm.forward_kinematics()
         return [forwardKinematics[0][3],forwardKinematics[1][3], forwardKinematics[2][3]]
+
+    def getCollision(self) -> list:
+        shoulder = self.getShoulderPosition()
+        elbow = self.getElbowPosition()
+        hand = self.getHandPosition()
+
+        upperArmCollider : "col.CapsuleCollider" = col.CapsuleCollider(shoulder, elbow, self.CAPSULE_COLLISION_RADIUS)
+        forarmCollider : "col.CapsuleCollider" = col.CapsuleCollider(elbow, hand, self.CAPSULE_COLLISION_RADIUS)
+
+        return [upperArmCollider, forarmCollider]
+
 
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')

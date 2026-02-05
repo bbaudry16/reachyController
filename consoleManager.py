@@ -1,5 +1,7 @@
 import time, os
 
+#code from YoshiCr
+
 class Color():
     RED = "\x1b[1;31m"
     BLACK = "\x1b[1;30m"
