@@ -5,7 +5,7 @@ import consoleManager as cm
 import time
 import timeSerieManager as ts
 import collisonBox as col
-from math import cos, sin
+from math import cos, sin, radians
 
 class ReachyJoint():
     def __init__(self, maxAngleEuler : float, minAngleEuler : float):
@@ -56,7 +56,6 @@ class ReachyArm():
         self._getNameByArmSide("gripper"): self.JOINT_GRIPPER,
         }
 
-        self.collider = self.getCollisionCapsules()
 
         return None
 
@@ -216,12 +215,40 @@ class ReachyArm():
     
     def getShoulderDirection(self) -> list:
         
-        tetha : float = self._joints[self._getNameByArmSide("shoulder_pitch")].
-        
-        yaw : float = cos()
+        L = self.SHOULDER_TO_ELBOW
+
+        pitch = radians(self._joints[self._getNameByArmSide("shoulder_pitch")].present_position)
+        roll  = radians(self._joints[self._getNameByArmSide("shoulder_roll")].present_position)
+
+        Rx = np.array([
+            [1, 0, 0],
+            [0, cos(roll), -sin(roll)],
+            [0, sin(roll), cos(roll)]
+        ])
+
+
+        Ry = np.array([
+            [cos(pitch), 0, sin(pitch)],
+            [0, 1, 0],
+            [-sin(pitch), 0, cos(pitch)]
+        ])
+
+        v0 = np.array([0, 0, -L])
+
+        v = Ry @ Rx @ v0
+        return v.tolist()
 
     
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     arm : ReachyArm = ReachyArm(reachy, "l")
-    print(arm._forwardKinematics())
+    arm.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 1)
+    print(arm.getShoulderDirection())
+    arm.gotoCartesianPoint([-2, 0.19, 0], [0, -90, 0], 1)
+    print(arm.getShoulderDirection())
+    arm.gotoCartesianPoint([0, 2, 0], [0, -90, 0], 1)
+    print(arm.getShoulderDirection())
+    arm.gotoCartesianPoint([0, 0.19, 2], [0, -90, 0], 1)
+    print(arm.getShoulderDirection())
+    arm.gotoCartesianPoint([0, 0.19, -2], [0, -90, 0], 1)
+    print(arm.getShoulderDirection())
