@@ -1,18 +1,21 @@
 import numpy as np
 from reachy_sdk import trajectory, ReachySDK
 from scipy.spatial.transform import Rotation as R
-import consoleManager as cm
 import time
+from math import cos, sin, radians
+
+import reachyPart as rp
+import consoleManager as cm
 import timeSerieManager as ts
 import collisonBox as col
-from math import cos, sin, radians
+
 
 class ReachyJoint():
     def __init__(self, maxAngleEuler : float, minAngleEuler : float):
         self.maxAngle = maxAngleEuler
         self.minAngle = minAngleEuler
 
-class ReachyArm():
+class ReachyArm(rp.ReachyPart):
     #contraint
     JOINT_SHOULDER_PITCH = ReachyJoint(90.0, -150.0)
     JOINT_SHOULDER_ROLL = ReachyJoint(10.0, -180.0)
@@ -35,7 +38,8 @@ class ReachyArm():
     ARM_NAME : str = "arm"
     ARM_LEFT_ID : str = "l"
     #collision
-    CAPSULE_COLLISION_RADIUS : float = 0.05
+    CAPSULE_COLLISION_RADIUS : float = 0.04
+    TABLE_Z_COORD : float = -0.4
     #console manager
     CLASS_NAME : str = "Reachy arm"
     CLASS_COLOR : str = cm.Color.CYAN
@@ -59,6 +63,8 @@ class ReachyArm():
         self._getNameByArmSide("gripper"): self.JOINT_GRIPPER,
         }
 
+        self.canMove : bool = True
+        self.hasNotifyImpossibleMove : bool = False
 
         return None
 
@@ -85,17 +91,39 @@ class ReachyArm():
             cm.MKprint(cm.Color.RED + f"[SAFETY] {jointName} clamped to {r}" + cm.Color.RESET, ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
         return r
     
+    def _collideWithTable(self) -> bool:
+        return self.getHandPosition()[2] <= self.TABLE_Z_COORD
+
+
+    def _checkCollision(self) -> bool:
+        
+        if self._collideWithTable():
+            cm.MKprint(cm.Color.RED + f"[SAFETY] Collision with table !" + cm.Color.RESET, ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+            self.canMove = False
+            return True
+        
+        return False
+        
+
+
     def _safeGoto(self, joint_dict : dict, duration : float, interpolation = trajectory.interpolation.linear):
-        safe_dict = {}
-        for joint, pos in joint_dict.items():
-            name = joint.name
-            if name in self._joint_constraints:
-                limits = self._joint_constraints[name]
-                pos = self._clamp(name, pos, limits.minAngle, limits.maxAngle)
-            safe_dict[joint] = pos
+        if(self.canMove):
+            if self._checkCollision():
+                return
 
-        trajectory.goto(safe_dict, duration=duration, interpolation_mode=interpolation)
+            safe_dict = {}
+            for joint, pos in joint_dict.items():
+                name = joint.name
+                if name in self._joint_constraints:
+                    limits = self._joint_constraints[name]
+                    pos = self._clamp(name, pos, limits.minAngle, limits.maxAngle)
+                safe_dict[joint] = pos
 
+            trajectory.goto(safe_dict, duration=duration, interpolation_mode=interpolation)
+        
+        elif not self.hasNotifyImpossibleMove :
+            cm.MKprint(cm.Color.RED + f"[SAFETY] Cannot safely perform this movement, please reset reachy position" + cm.Color.RESET, ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+            self.hasNotifyImpossibleMove = True
 
     def _getNameByArmSide(self, name : str) -> str:
         return self._armID + "_" + name
@@ -131,8 +159,8 @@ class ReachyArm():
         jointPos = self._reachyArm.inverse_kinematics(IKMatrix)
         
         
-        
-        cm.MKprint("Going to " + str(goalPosition) + " with rotation " + str(goalRotation) + " in " + str(duration) + "s.", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+        if(self.canMove):        
+            cm.MKprint("Going to " + str(goalPosition) + " with rotation " + str(goalRotation) + " in " + str(duration) + "s.", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
         self._safeGoto({joint: pos for joint,pos in zip(self._reachyArm.joints.values(), jointPos)}, duration=duration, interpolation=interpolation)
 
         return None
@@ -287,9 +315,9 @@ if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     arm : ReachyArm = ReachyArm(reachy, "l")
     arm.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 1)
-    print(arm.getHandposition())
+    print(arm.getHandPosition())
     arm.gotoCartesianPoint([-2, 0.19, 0], [0, -90, 0], 1)
-    print(arm.getHandposition())
+    print(arm.getHandPosition())
     arm.gotoCartesianPoint([0, 2, 0], [0, -90, 0], 1)
-    print(arm.getHandposition())
+    print(arm.getHandPosition())
     

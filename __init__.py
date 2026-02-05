@@ -3,6 +3,8 @@ import armController as ac
 import headController as hc
 import consoleManager as cm
 import timeSerieManager as ts
+import torsoController as to
+
 from concurrent.futures import ThreadPoolExecutor
 
 
@@ -22,6 +24,7 @@ class ReachyController():
         self.armLeft = ac.ReachyArm(self.reachy, ReachyController.ARM_LEFT_ID)
         self.armRight = ac.ReachyArm(self.reachy, ReachyController.ARM_RIGHT_ID)
         self.head = hc.ReachyHead(self.reachy)
+        self.torso = to.ReachyTorso()
 
     def runAsync(self, func, *args):
         self._executor.submit(func, *args)
@@ -69,7 +72,7 @@ class ReachyController():
                     r = r + headRecord
             
             elif recordHead:
-                r = headRecordarmRight
+                r = headRecord
                 if recordArmLeft:
                     r = r + lArmRecord
                 if recordArmRight:
@@ -97,12 +100,11 @@ class ReachyController():
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     reachyC = ReachyController(reachy)
-    reachyC.armRight.changeHandAngle(0, 1)
-    #reachyC.armRight.changeHandAngle(-70, 1)
-    #reachyC.armRight.gotoCartesianPoint( [3, -5, -2], [0, -90, 0], 5)
-    #reachyC.runAsync(reachyC.armLeft.openHand, 5)
+    reachyC.armLeft.changeHandAngle(0, 1)
+    reachyC.armLeft.gotoCartesianPoint( [3, -5, -2], [0, -90, 0], 0.01)
+    reachyC.runAsync(reachyC.armLeft.openHand, 5)
     reachyC.runAsync(reachyC.armLeft.gotoCartesianPoint, [3, 5, -2], [0, -90, 0], 5)
 
     a = reachyC.record(5, 20)
     a.plot()
-    #reachyC.playRecord(a)
+    reachyC.playRecord(a)

@@ -1,5 +1,7 @@
 from reachy_sdk import trajectory, ReachySDK
 import time
+
+import reachyPart as rp
 import consoleManager as cm
 import timeSerieManager as ts
 
@@ -8,7 +10,7 @@ class ReachyDisk():
         self.maxAngle = maxAngleEuler
         self.minAngle = minAngleEuler
     
-class ReachyHead():
+class ReachyHead(rp.ReachyPart):
 
     #name
     ANTENNA_MOTOR_NAME : str = ["l_antenna", "r_antenna"]
