@@ -5,6 +5,7 @@ import consoleManager as cm
 import time
 import timeSerieManager as ts
 import collisonBox as col
+from math import cos, sin
 
 class ReachyJoint():
     def __init__(self, maxAngleEuler : float, minAngleEuler : float):
@@ -213,54 +214,11 @@ class ReachyArm():
 
         return None
     
-    def _forwardKinematics(self):
-
+    def getShoulderDirection(self) -> list:
         
-
-        sp = np.deg2rad(self._joints[self._getNameByArmSide("shoulder_pitch")].present_position)
-        sr = np.deg2rad(self._joints[self._getNameByArmSide("shoulder_roll")].present_position)
-        ep = np.deg2rad(self._joints[self._getNameByArmSide("elbow_pitch")].present_position)
-
-        shoulder = np.array([0.0, 0.0, 0.0])
-
-        elbow = shoulder + np.array([
-            ReachyArm.SHOULDER_TO_ELBOW * np.cos(sp) * np.cos(sr),
-            ReachyArm.SHOULDER_TO_ELBOW * np.sin(sr),
-            ReachyArm.SHOULDER_TO_ELBOW * np.sin(sp) * np.cos(sr),
-        ])
-
-        wrist = elbow + np.array([
-            ReachyArm.ELBOW_TO_WRIST * np.cos(sp + ep) * np.cos(sr),
-            ReachyArm.ELBOW_TO_WRIST * np.sin(sr),
-            ReachyArm.ELBOW_TO_WRIST * np.sin(sp + ep) * np.cos(sr),
-        ])
-
-        return {
-            "shoulder": shoulder,
-            "elbow": elbow,
-            "wrist": wrist,
-        }
-
-
-    def getCollisionCapsules(self) -> list:
-        """
-        Return a list of CapsuleCollider representing the arm collision geometry
-        """
-        fk = self._forwardKinematics()
-
-        shoulder = fk["shoulder"]
-        elbow = fk["elbow"]
-        wrist = fk["wrist"]
-
-        capsules = []
-
-        capsules.append(col.CapsuleCollider(pointA=shoulder, pointB=elbow, radius=0.05))
-        capsules.append(col.CapsuleCollider(pointA=elbow, pointB=wrist, radius=0.045))
-
-        return capsules
-
-
-
+        tetha : float = self._joints[self._getNameByArmSide("shoulder_pitch")].
+        
+        yaw : float = cos()
 
     
 if __name__ == "__main__":
