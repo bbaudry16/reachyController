@@ -1,6 +1,6 @@
 import time, os
 
-#code from YoshiCr
+#code from Yoshman29's console manager : https://github.com/YoshiCrafter29
 
 class Color():
     RED = "\x1b[1;31m"
