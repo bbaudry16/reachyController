@@ -95,7 +95,6 @@ class ReachyArm(rp.ReachyPart):
         return r
     
     def _collideWithTable(self, joint_dict : dict) -> bool:
-        print("new_forward : " + str(self.getHandPositionFromJointsPosition(joint_dict)))
         return self.getHandPositionFromJointsPosition(joint_dict)[2] <= self.TABLE_Z_COORD
 
 
@@ -180,8 +179,6 @@ class ReachyArm(rp.ReachyPart):
     def gotoCartesianPoint(self, goalPosition : list, goalRotation : list, duration : float = 0.1, interpolation = trajectory.interpolation.linear) -> None:
         IKMatrix : list = self._getIKMatrix(goalPosition, goalRotation)
         jointPos = self._reachyArm.inverse_kinematics(IKMatrix)
-        print("forward : " + str(self.getHandPositionFromJointsPosition({joint: pos for joint,pos in zip(self._reachyArm.joints.values(), jointPos)})))
-
         
         if(self.canMove):        
             cm.MKprint("Going to " + str(goalPosition) + " with rotation " + str(goalRotation) + " in " + str(duration) + "s.", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
@@ -379,9 +376,8 @@ if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     arm : ReachyArm = ReachyArm(reachy, "l")
     arm._debug_placeHandOnTable()
-    #arm.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 1)
-    #arm.gotoCartesianPoint([-2, 0.19, 0], [0, -90, 0], 1)
+    arm.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 1)
+    arm.gotoCartesianPoint([-2, 0.19, 0], [0, -90, 0], 1)
     arm.gotoCartesianPoint([0, 0, -2], [0, -90, 0], 1)
-    print("final pos : " + str(arm.getHandPosition()))
 
     
