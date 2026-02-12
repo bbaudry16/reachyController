@@ -101,13 +101,12 @@ class ReachyArm(rp.ReachyPart):
     def _checkCollision(self) -> bool:
         
         if self._collideWithTable():
-            cm.MKprint(cm.Color.RED + f"[SAFETY] Collision with table !" + cm.Color.RESET, ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+            cm.MKprintSafety("[SAFETY] Collision with table !", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
             self.canMove = False
             return True
         
         return False
         
-
 
     def _safeGoto(self, joint_dict : dict, duration : float, interpolation = trajectory.interpolation.linear):
         if(self.canMove):
@@ -125,8 +124,28 @@ class ReachyArm(rp.ReachyPart):
             trajectory.goto(safe_dict, duration=duration, interpolation_mode=interpolation)
         
         elif not self.hasNotifyImpossibleMove :
-            cm.MKprint(cm.Color.RED + f"[SAFETY] Cannot safely perform this movement, please reset reachy position" + cm.Color.RESET, ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+            cm.MKprintSafety("Cannot safely perform this movement, please reset reachy position", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
             self.hasNotifyImpossibleMove = True
+
+    def _debug_goto(self, joint_dict : dict, duration : float, interpolation = trajectory.interpolation.linear):
+        """
+        A not safe goto function DO NOT USE FOR NON-DEBUG PURPOSE
+        """
+        trajectory.goto(joint_dict, duration=duration, interpolation_mode=interpolation)
+
+    def _debug_placeHandOnTable(self, duration : float = 1.0):
+        
+        target_positions = {
+            self._joints[self._getNameByArmSide("shoulder_pitch")]: 0.0,
+            self._joints[self._getNameByArmSide("shoulder_roll")]: 0.0,
+            self._joints[self._getNameByArmSide("arm_yaw")]: 0.0,
+            self._joints[self._getNameByArmSide("elbow_pitch")]: -90.0,
+            self._joints[self._getNameByArmSide("forearm_yaw")]: 0.0,
+            self._joints[self._getNameByArmSide("wrist_pitch")]: 0.0,
+            self._joints[self._getNameByArmSide("wrist_roll")]: 0.0,
+        }
+        cm.MKprintDebug("Reset reachy arm position, ignoring any obstacle", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+        self._safeGoto(target_positions, duration=duration)
 
     def _getNameByArmSide(self, name : str) -> str:
         return self._armID + "_" + name
@@ -351,10 +370,9 @@ class ReachyArm(rp.ReachyPart):
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     arm : ReachyArm = ReachyArm(reachy, "l")
-    arm.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 1)
-    print(arm.getHandPosition())
-    arm.gotoCartesianPoint([-2, 0.19, 0], [0, -90, 0], 1)
-    print(arm.getHandPosition())
-    arm.gotoCartesianPoint([0, 2, 0], [0, -90, 0], 1)
-    print(arm.getHandPosition())
+    arm._debug_placeHandOnTable()
+    #arm.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 1)
+    #arm.gotoCartesianPoint([-2, 0.19, 0], [0, -90, 0], 1)
+    #arm.gotoCartesianPoint([0, 2, 0], [0, -90, 0], 1)
+
     
