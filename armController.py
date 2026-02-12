@@ -91,17 +91,18 @@ class ReachyArm(rp.ReachyPart):
     def _clamp(self, jointName : str, value: float, min_v: float, max_v: float) -> float:
         r : float = max(min(value, max_v), min_v)
         if value < min_v or value > max_v:
-            cm.MKprint(cm.Color.RED + f"[SAFETY] {jointName} clamped to {r}" + cm.Color.RESET, ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+            cm.MKprint(f"{jointName} clamped to {r}", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
         return r
     
-    def _collideWithTable(self) -> bool:
-        return self.getHandPosition()[2] <= self.TABLE_Z_COORD
+    def _collideWithTable(self, joint_dict : dict) -> bool:
+        print("new_forward : " + str(self.getHandPositionFromJointsPosition(joint_dict)))
+        return self.getHandPositionFromJointsPosition(joint_dict)[2] <= self.TABLE_Z_COORD
 
 
-    def _checkCollision(self) -> bool:
+    def _checkCollision(self, joint_dict : dict) -> bool:
         
-        if self._collideWithTable():
-            cm.MKprintSafety("[SAFETY] Collision with table !", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+        if self._collideWithTable(joint_dict):
+            cm.MKprintSafety("Collision with table !", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
             self.canMove = False
             return True
         
@@ -110,7 +111,7 @@ class ReachyArm(rp.ReachyPart):
 
     def _safeGoto(self, joint_dict : dict, duration : float, interpolation = trajectory.interpolation.linear):
         if(self.canMove):
-            if self._checkCollision():
+            if self._checkCollision(joint_dict):
                 return
 
             safe_dict = {}
@@ -145,7 +146,7 @@ class ReachyArm(rp.ReachyPart):
             self._joints[self._getNameByArmSide("wrist_roll")]: 0.0,
         }
         cm.MKprintDebug("Reset reachy arm position, ignoring any obstacle", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
-        self._safeGoto(target_positions, duration=duration)
+        self._debug_goto(target_positions, duration=duration)
 
     def _getNameByArmSide(self, name : str) -> str:
         return self._armID + "_" + name
@@ -179,7 +180,8 @@ class ReachyArm(rp.ReachyPart):
     def gotoCartesianPoint(self, goalPosition : list, goalRotation : list, duration : float = 0.1, interpolation = trajectory.interpolation.linear) -> None:
         IKMatrix : list = self._getIKMatrix(goalPosition, goalRotation)
         jointPos = self._reachyArm.inverse_kinematics(IKMatrix)
-        
+        print("forward : " + str(self.getHandPositionFromJointsPosition({joint: pos for joint,pos in zip(self._reachyArm.joints.values(), jointPos)})))
+
         
         if(self.canMove):        
             cm.MKprint("Going to " + str(goalPosition) + " with rotation " + str(goalRotation) + " in " + str(duration) + "s.", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
@@ -341,9 +343,15 @@ class ReachyArm(rp.ReachyPart):
         forwardKinematics = self._reachyArm.forward_kinematics()
         return self.getHandPositionFromForwardKinematicsMatrix(forwardKinematics)
     
-    def getHandPositionFromJointsPosition(self, joint_dict : dict):
-        ordered_positions = [joint_dict[joint] for joint in self._reachyArm.joints.values()]
-        forwardKinematics = self._reachyArm.forward_kinematics(ordered_positions)
+    def getHandPositionFromJointsPosition(self, joint_dict: dict):
+
+        ordered_positions : list = ["shoulder_pitch","shoulder_roll","arm_yaw","elbow_pitch","forearm_yaw","wrist_pitch","wrist_roll"]
+        jointPos : list =  []
+        for joint in ordered_positions:
+            jointPos.append(joint_dict[self._joints[self._getNameByArmSide(joint)]])
+
+        forwardKinematics = self._reachyArm.forward_kinematics(jointPos)
+
         return self.getHandPositionFromForwardKinematicsMatrix(forwardKinematics)
 
     def getCollision(self) -> list:
@@ -373,6 +381,7 @@ if __name__ == "__main__":
     arm._debug_placeHandOnTable()
     #arm.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 1)
     #arm.gotoCartesianPoint([-2, 0.19, 0], [0, -90, 0], 1)
-    #arm.gotoCartesianPoint([0, 2, 0], [0, -90, 0], 1)
+    arm.gotoCartesianPoint([0, 0, -2], [0, -90, 0], 1)
+    print("final pos : " + str(arm.getHandPosition()))
 
     
