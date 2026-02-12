@@ -118,5 +118,5 @@ if __name__ == "__main__":
 
     reachyC.armLeft._debug_placeHandOnTable()
     reachyC.armLeft.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 1)
-    reachyC.armLeft.gotoCartesianPoint([-2, 0.19, 0], [0, -90, 0], 1)
-    reachyC.armLeft.gotoCartesianPoint([0, 0, -0.1], [0, -90, 0], 1)
+    reachyC.armLeft.gotoCartesianPoint([0, 0, 0], [0, -90, 0], 1)
+    reachyC.armLeft.gotoCartesianPoint([0, -2, 0], [0, -90, 0], 1)

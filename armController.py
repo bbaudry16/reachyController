@@ -65,7 +65,7 @@ class ReachyArm(rp.ReachyPart):
 
         self.collisionSkeleton = collisionSkeleton
         if self.collisionSkeleton == None:
-            cm.MKprintSafety("No collision skeleton set up, collision with other part will be ignore")
+            cm.MKprintSafety("No collision skeleton set up, collision with other part will be ignore", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
 
         self.canMove : bool = True
         self.hasNotifyImpossibleMove : bool = False
@@ -74,7 +74,7 @@ class ReachyArm(rp.ReachyPart):
 
     def setCollisionSkeleton(self,collisionSkeleton : "col.collisionSkeleton"):
         self.collisionSkeleton = collisionSkeleton
-        cm.MKprintSafety("collision skeleton set ! now collision with other part will be take into account")
+        cm.MKprintSafety("collision skeleton set ! now collision with other part will be take into account", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
 
     def getArmId(self) -> str:
         return self._armID
@@ -99,7 +99,7 @@ class ReachyArm(rp.ReachyPart):
     def _clamp(self, jointName : str, value: float, min_v: float, max_v: float) -> float:
         r : float = max(min(value, max_v), min_v)
         if value < min_v or value > max_v:
-            cm.MKprint(f"{jointName} clamped to {r}", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+            cm.MKprintSafety(f"{jointName} clamped to {r}", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
         return r
     
     def _collideWithTable(self, joint_dict : dict) -> bool:
@@ -107,8 +107,8 @@ class ReachyArm(rp.ReachyPart):
 
     def _collideWithOtherPart(self, joint_dict : dict) -> bool:
         if self.collisionSkeleton != None:
-            self.collisionSkeleton.askValidMovement(self._armID, joint_dict)
-
+            return not self.collisionSkeleton.askValidMovement(self._armID, joint_dict)
+        return False
     def _checkCollision(self, joint_dict : dict) -> bool:
         
         if self._collideWithTable(joint_dict):
