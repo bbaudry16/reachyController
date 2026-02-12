@@ -1,5 +1,6 @@
 import numpy as np
 import armController
+import torsoController
 
 class CapsuleCollider:
     def __init__(self, pointA, pointB, radius: float):
@@ -69,8 +70,37 @@ class CapsuleCollider:
 
 class collisionSkeleton():
 
-    def __init__(self, armRight : "armController", armLeft : "armController"):
-        self.reachyPart = {armRight.getArmId() : armRight, armLeft.getArmId() : armLeft}
+    def __init__(self, armRight : "armController" = None, armLeft : "armController" = None, torso : "torsoController.ReachyTorso" = None):
+        if armRight == None and armLeft == None and torso == None:
+            return
+        
+        self.reachyArm = {armRight.getArmId() : armRight, armLeft.getArmId() : armLeft}
+        self.torso = torso
 
-    def askValidMovement(armId : str, joint_dict : dict):
-        pass        
+    def askValidMovement(self, armId : str, joint_dict : dict) -> bool:
+        collider : list = []
+        currentObjectCollider : list = []
+
+        #get arm collider
+        for arm in self.reachyArm.keys():
+            if arm != armId:
+                collider += self.reachyArm[arm].getCollision()
+            else:
+                currentObjectCollider += self.reachyArm[arm].getCollisionFromPosition(joint_dict)
+        
+        #get torso collider
+        collider += self.torso.getCollision()
+
+        ok : bool = True
+
+        for currentCollider in currentObjectCollider:
+            for colliderToTest in collider:
+                ok = not currentCollider.intersects(colliderToTest)
+
+                if not ok:
+                    break
+        
+            if not ok:
+                break
+        
+        return ok

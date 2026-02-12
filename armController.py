@@ -44,7 +44,7 @@ class ReachyArm(rp.ReachyPart):
     CLASS_NAME : str = "Reachy arm"
     CLASS_COLOR : str = cm.Color.CYAN
 
-    def __init__(self, _reachy : ReachySDK, _armID : str) -> None:
+    def __init__(self, _reachy : ReachySDK, _armID : str, collisionSkeleton : "col.collisionSkeleton" = None) -> None:
         
         self._armID : str = _armID
         self._setupConstraints()
@@ -63,10 +63,18 @@ class ReachyArm(rp.ReachyPart):
         self._getNameByArmSide("gripper"): self.JOINT_GRIPPER,
         }
 
+        self.collisionSkeleton = collisionSkeleton
+        if self.collisionSkeleton == None:
+            cm.MKprintSafety("No collision skeleton set up, collision with other part will be ignore")
+
         self.canMove : bool = True
         self.hasNotifyImpossibleMove : bool = False
 
         return None
+
+    def setCollisionSkeleton(self,collisionSkeleton : "col.collisionSkeleton"):
+        self.collisionSkeleton = collisionSkeleton
+        cm.MKprintSafety("collision skeleton set ! now collision with other part will be take into account")
 
     def getArmId(self) -> str:
         return self._armID
@@ -97,11 +105,19 @@ class ReachyArm(rp.ReachyPart):
     def _collideWithTable(self, joint_dict : dict) -> bool:
         return self.getHandPositionFromJointsPosition(joint_dict)[2] <= self.TABLE_Z_COORD
 
+    def _collideWithOtherPart(self, joint_dict : dict) -> bool:
+        if self.collisionSkeleton != None:
+            self.collisionSkeleton.askValidMovement(self._armID, joint_dict)
 
     def _checkCollision(self, joint_dict : dict) -> bool:
         
         if self._collideWithTable(joint_dict):
             cm.MKprintSafety("Collision with table !", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
+            self.canMove = False
+            return True
+        
+        elif self._collideWithOtherPart(joint_dict):
+            cm.MKprintSafety("Collision with another part !", ReachyArm.CLASS_NAME, ReachyArm.CLASS_COLOR)
             self.canMove = False
             return True
         

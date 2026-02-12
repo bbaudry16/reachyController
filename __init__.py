@@ -4,6 +4,7 @@ import headController as hc
 import consoleManager as cm
 import timeSerieManager as ts
 import torsoController as to
+import collisonBox as co
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -21,10 +22,16 @@ class ReachyController():
 
     def __init__(self, reachy : ReachySDK):
         self.reachy = reachy
+
         self.armLeft = ac.ReachyArm(self.reachy, ReachyController.ARM_LEFT_ID)
         self.armRight = ac.ReachyArm(self.reachy, ReachyController.ARM_RIGHT_ID)
         self.head = hc.ReachyHead(self.reachy)
         self.torso = to.ReachyTorso()
+
+        self.collisionSkeleton = co.collisionSkeleton(self.armRight, self.armLeft, self.torso)
+
+        self.armLeft.setCollisionSkeleton(self.collisionSkeleton)
+        self.armRight.setCollisionSkeleton(self.collisionSkeleton)
 
     def runAsync(self, func, *args):
         self._executor.submit(func, *args)
@@ -100,11 +107,16 @@ class ReachyController():
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     reachyC = ReachyController(reachy)
-    reachyC.armLeft.changeHandAngle(0, 1)
-    reachyC.armLeft.gotoCartesianPoint( [3, -5, -2], [0, -90, 0], 0.01)
-    reachyC.runAsync(reachyC.armLeft.openHand, 5)
-    reachyC.runAsync(reachyC.armLeft.gotoCartesianPoint, [3, 5, -2], [0, -90, 0], 5)
+    #reachyC.armLeft.changeHandAngle(0, 1)
+    #reachyC.armLeft.gotoCartesianPoint( [3, -5, -2], [0, -90, 0], 0.01)
+    #reachyC.runAsync(reachyC.armLeft.openHand, 5)
+    #reachyC.runAsync(reachyC.armLeft.gotoCartesianPoint, [3, 5, -2], [0, -90, 0], 5)
 
-    a = reachyC.record(5, 20)
-    a.plot()
-    reachyC.playRecord(a)
+    #a = reachyC.record(5, 20)
+    #a.plot()
+    #reachyC.playRecord(a)
+
+    reachyC.armLeft._debug_placeHandOnTable()
+    reachyC.armLeft.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 1)
+    reachyC.armLeft.gotoCartesianPoint([-2, 0.19, 0], [0, -90, 0], 1)
+    reachyC.armLeft.gotoCartesianPoint([0, 0, -0.1], [0, -90, 0], 1)
