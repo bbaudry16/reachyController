@@ -1,5 +1,5 @@
 import numpy as np
-
+import armController
 
 class CapsuleCollider:
     def __init__(self, pointA, pointB, radius: float):
@@ -66,3 +66,11 @@ class CapsuleCollider:
             other.pointA, other.pointB
         )
         return distance <= (self.radius + other.radius)
+
+class collisionSkeleton():
+
+    def __init__(self, armRight : "armController", armLeft : "armController"):
+        self.reachyPart = {armRight.getArmId() : armRight, armLeft.getArmId() : armLeft}
+
+    def askValidMovement(armId : str, joint_dict : dict):
+        pass        

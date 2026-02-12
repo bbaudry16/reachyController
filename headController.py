@@ -96,6 +96,10 @@ class ReachyHead(rp.ReachyPart):
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     head = ReachyHead(reachy)
-    head.lookAt([3, 2, 0])
-    a = head.recordHead(1, 20)
-    head.playHeadRecord(a, 20)
+    i = 1
+    while True:
+        i+=1
+        from math import cos, sin
+        head.lookAt([0, cos(i),0 ], 1)
+    #a = head.recordHead(1, 20)
+    #head.playHeadRecord(a, 20)

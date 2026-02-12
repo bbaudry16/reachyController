@@ -68,6 +68,9 @@ class ReachyArm(rp.ReachyPart):
 
         return None
 
+    def getArmId(self) -> str:
+        return self._armID
+
     def _setupConstraints(self) -> None:
         if self._armID == ReachyArm.ARM_LEFT_ID:
             self.JOINT_SHOULDER_ROLL = ReachyJoint(180.0 , -10.0)
@@ -252,7 +255,7 @@ class ReachyArm(rp.ReachyPart):
         return [x, 0, 0]
 
 
-    def getElbowPosition(self) -> list:
+    def getElbowPositionFromAngles(self, pitchDegree : float, rollDegree : float, yawDegree : float) -> list:
         """
         return the elbow position in meters in this form : [x, y, z] (remember z is up)
         PARAMETER NONE
@@ -260,9 +263,9 @@ class ReachyArm(rp.ReachyPart):
         """
         L = self.SHOULDER_TO_ELBOW
 
-        pitch = radians(self._joints[self._getNameByArmSide("shoulder_pitch")].present_position)
-        roll  = radians(self._joints[self._getNameByArmSide("shoulder_roll")].present_position)
-        yaw = radians(self._joints[self._getNameByArmSide("arm_yaw")].present_position)
+        pitch = radians(pitchDegree)
+        roll  = radians(rollDegree)
+        yaw = radians(yawDegree)
 
         Rx = np.array([
             [1, 0, 0],
@@ -290,20 +293,54 @@ class ReachyArm(rp.ReachyPart):
 
         return elbow_world.tolist()
     
+    def getElbowPosition(self) -> list:
+        """
+        return the elbow position in meters in this form : [x, y, z] (remember z is up)
+        PARAMETER NONE
+        RETURN list
+        """
+        return self.getElbowPositionFromAngles(self._joints[self._getNameByArmSide("shoulder_pitch")].present_position, self._joints[self._getNameByArmSide("shoulder_roll")].present_position, self._joints[self._getNameByArmSide("arm_yaw")].present_position)
     
-    def getHandPosition(self) -> list:
+    def getElbowPositionFromJointsPosition(self, joint_dict : dict) -> list:
+        """
+        return the elbow position in meters in this form : [x, y, z] (remember z is up)
+        PARAMETER NONE
+        RETURN list
+        """
+        return self.getElbowPositionFromAngles(joint_dict[self._joints[self._getNameByArmSide("shoulder_pitch")]], joint_dict[self._joints[self._getNameByArmSide("shoulder_roll")]], joint_dict[self._joints[self._getNameByArmSide("arm_yaw")]])
+    
+
+    def getHandPositionFromForwardKinematicsMatrix(self, forwardKinematics : list) -> list:
         """
         return hand position in meter using forward kinematics in form [x, y, z] (remember z is up)
         PARAMETER NONE
         RETURN list
         """
-        forwardKinematics = self._reachyArm.forward_kinematics()
         return [forwardKinematics[0][3],forwardKinematics[1][3], forwardKinematics[2][3]]
+
+    def getHandPosition(self):
+        forwardKinematics = self._reachyArm.forward_kinematics()
+        return self.getHandPositionFromForwardKinematicsMatrix(forwardKinematics)
+    
+    def getHandPositionFromJointsPosition(self, joint_dict : dict):
+        ordered_positions = [joint_dict[joint] for joint in self._reachyArm.joints.values()]
+        forwardKinematics = self._reachyArm.forward_kinematics(ordered_positions)
+        return self.getHandPositionFromForwardKinematicsMatrix(forwardKinematics)
 
     def getCollision(self) -> list:
         shoulder = self.getShoulderPosition()
         elbow = self.getElbowPosition()
         hand = self.getHandPosition()
+
+        upperArmCollider : "col.CapsuleCollider" = col.CapsuleCollider(shoulder, elbow, self.CAPSULE_COLLISION_RADIUS)
+        forarmCollider : "col.CapsuleCollider" = col.CapsuleCollider(elbow, hand, self.CAPSULE_COLLISION_RADIUS)
+
+        return [upperArmCollider, forarmCollider]
+    
+    def getCollisionFromPosition(self, joint_dict : dict) -> list:
+        shoulder = self.getShoulderPosition()
+        elbow = self.getElbowPositionFromJointsPosition(joint_dict)
+        hand = self.getHandPositionFromJointsPosition(joint_dict)
 
         upperArmCollider : "col.CapsuleCollider" = col.CapsuleCollider(shoulder, elbow, self.CAPSULE_COLLISION_RADIUS)
         forarmCollider : "col.CapsuleCollider" = col.CapsuleCollider(elbow, hand, self.CAPSULE_COLLISION_RADIUS)
