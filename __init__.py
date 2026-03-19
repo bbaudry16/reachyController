@@ -104,6 +104,13 @@ class ReachyController():
             executor.submit(self.head.playHeadRecord, records, startDuration)
         cm.MKprint("|-------------------- Stop playing reachy records ------------------|", ReachyController.CLASS_NAME, ReachyController.CLASS_COLOR)
 
+
+    def turnOn(self):
+        reachy.turn_on("reachy")
+    
+    def turnOffSmooth(self):
+        reachy.turn_off_smoothly("reachy")
+
 if __name__ == "__main__":
     reachy = ReachySDK(host='localhost')
     reachyC = ReachyController(reachy)
@@ -116,7 +123,9 @@ if __name__ == "__main__":
     #a.plot()
     #reachyC.playRecord(a)
 
-    reachyC.armLeft._debug_placeHandOnTable()
-    reachyC.armLeft.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 1)
-    reachyC.armLeft.gotoCartesianPoint([0, 0, 0], [0, -90, 0], 1)
-    reachyC.armLeft.gotoCartesianPoint([0, -2, 0], [0, -90, 0], 1)
+    #reachyC.armLeft._debug_placeHandOnTable()
+    reachyC.turnOn()
+    reachyC.armLeft.gotoCartesianPoint([2, 0.19, 0], [0, -90, 0], 5)
+    reachyC.armLeft.gotoCartesianPoint([0, 0, 0], [0, -90, 0], 5)
+    reachyC.armLeft.gotoCartesianPoint([0, -2, 0], [0, -90, 0], 5)
+    reachyC.turnOffSmooth()
