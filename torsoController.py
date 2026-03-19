@@ -1,10 +1,14 @@
-import reachyPart as rp
-import collisonBox as cb
+from __future__ import annotations
+from reachyPart import ReachyPart
+from capsuleCollider import CapsuleCollider
+import config
 
 
-class ReachyTorso(rp.ReachyPart):
+class ReachyTorso(ReachyPart):
 
-    TORSO_SIZE : float = 0.263
-
-    def getCollision(self):
-        return [cb.CapsuleCollider([0, 0, 0], [0, 0, -self.TORSO_SIZE], 0.02)]
+    def getCollision(self) -> list[CapsuleCollider]:
+        return [CapsuleCollider(
+            [0, 0, 0],
+            [0, 0, -config.TORSO_SIZE],
+            config.TORSO_COLLISION_RADIUS
+        )]
