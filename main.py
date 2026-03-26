@@ -1,7 +1,7 @@
 from reachy_sdk import ReachySDK
 from reachyController import ReachyController
 import time
-
+import timeSeries as ts
 
 def main():
     reachy  = ReachySDK(host='localhost')
@@ -14,17 +14,13 @@ def main():
     a = reachyC.record(5, 20)
     future.result()
 
-    time.sleep(1)
-
-    
-    reachyC.runAsync(reachyC.playRecord,a)
-    time.sleep(3)
-    b = reachyC.record(5, 20)
-
-    future.result()
-    reachyC.turnOffSmooth()
+    reachyC.armLeft._debug_placeHandOnTable()
     a.plot()
-    b.plot()
+    a.saveToJson("test.json")
+    a.saveToCSV("test.csv")
+
+    a.loadFromCSV("test.csv")
+    reachyC.playRecord(a)
 
 if __name__ == "__main__":
     main()

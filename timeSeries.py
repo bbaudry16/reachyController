@@ -1,9 +1,12 @@
 import json
 import matplotlib.pyplot as plt
 import config
+import csv
 
 
 class TimeSeries:
+
+    JOINT_LABLE : list = ["l_shoulder_pitch", "l_shoulder_roll", "l_arm_yaw", "l_elbow_pitch","l_wrist_pitch", "r_shoulder_pitch", "r_shoulder_roll", "r_arm_yaw", "r_elbow_pitch", "r_wrist_pitch"]
 
     def __init__(self, samplingFrequency: float, recordDurationSeconds: float, jointPosition: list = None):
         self.samplingFrequency  = samplingFrequency
@@ -38,12 +41,56 @@ class TimeSeries:
     def saveToJson(self, fileName: str) -> None:
         with open(fileName, mode="w") as f:
             json.dump(self.toDict(), f, indent=4)
+    
+    def saveToCSV(self, fileName : str) -> None:
+        with open(fileName, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=';',quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(["timestamp"]+[i for i in self.JOINT_LABLE] + ["samplingFrequency", "recordDuration"])
+            for i in self.jointPosition:
+                writer.writerow([i["timestamp"]]+[i[j] for j in self.JOINT_LABLE]+[self.samplingFrequency, self.recordDuration])
+
 
     @classmethod
     def loadFromJson(cls, fileName: str) -> "TimeSeries":
         with open(fileName, mode="r") as f:
             data = json.load(f)
         return cls(data["samplingFrequency"], data["recordDuration"], data["jointPosition"])
+    
+    @classmethod
+    def loadFromCSV(cls, fileName: str) -> "TimeSeries":
+        jointPosition = []
+        samplingFrequency = None
+        recordDuration = None
+
+        with open(fileName, newline='') as csvfile:
+            reader = csv.reader(csvfile, delimiter=';', quotechar='|')
+            
+            header = next(reader)
+            
+            timestamp_idx = header.index("timestamp")
+            sf_idx = header.index("samplingFrequency")
+            rd_idx = header.index("recordDuration")
+
+            joint_indices = {name: header.index(name) for name in cls.JOINT_LABLE}
+
+            for row in reader:
+                frame = {}
+
+                frame["timestamp"] = float(row[timestamp_idx])
+
+                for joint, idx in joint_indices.items():
+                    frame[joint] = float(row[idx])
+
+                jointPosition.append(frame)
+
+                if samplingFrequency is None:
+                    samplingFrequency = float(row[sf_idx])
+                if recordDuration is None:
+                    recordDuration = float(row[rd_idx])
+
+            return cls(samplingFrequency, recordDuration, jointPosition)
+
+        #return cls(data["samplingFrequency"], data["recordDuration"], data["jointPosition"])
 
     # ─── Plot ──────────────────────────────────────────────────────────────────
 

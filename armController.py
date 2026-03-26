@@ -268,7 +268,9 @@ class ReachyArm(rp.ReachyPart):
         cm.MKprint(f"Recording {self._sided(config.ARM_NAME)} for {recordDurationSeconds}s at {samplingFrequencyHertz}Hz.", self.CLASS_NAME, self.CLASS_COLOR)
 
         while (time.time() - start) < recordDurationSeconds:
-            trajectories.append({name: joint.present_position for name, joint in self._joints.items()})
+            frame : dict = {name: joint.present_position for name, joint in self._joints.items()}
+            frame["timestamp"] = time.time()
+            trajectories.append(frame)
             time.sleep(samplingTime)
 
         cm.MKprint(f"Recording done for {self._sided(config.ARM_NAME)}.", self.CLASS_NAME, self.CLASS_COLOR)
@@ -280,15 +282,25 @@ class ReachyArm(rp.ReachyPart):
             for m, pos in record.jointPosition[0].items()
             if m in self._joints
         }
+
+
         samplingTime = 1.0 / record.samplingFrequency
 
         cm.MKprint(f"Playing record for {self._sided(config.ARM_NAME)}.", self.CLASS_NAME, self.CLASS_COLOR)
         self._safeGoto(firstPoint, duration=startDuration)
 
-        for jointsPositions in record.jointPosition:
+        start_time = record.jointPosition[0]["timestamp"]
+
+        for i in range(len(record.jointPosition) - 1):
+            current = record.jointPosition[i]
+            next_frame = record.jointPosition[i + 1]
+
+            dt = next_frame["timestamp"] - current["timestamp"]
+
             safe_step = {
                 self._joints[name]: pos
-                for name, pos in jointsPositions.items()
+                for name, pos in current.items()
                 if name in self._joints
             }
-            self._safeGoto(safe_step, duration=samplingTime, interpolation=trajectory.interpolation.linear)
+
+            self._safeGoto(safe_step, duration=dt)
