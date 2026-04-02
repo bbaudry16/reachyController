@@ -1,13 +1,13 @@
 import json
 import matplotlib.pyplot as plt
-from . import config
+import pandas as pd
+import config
 import csv
 
-from . import config
 
 class TimeSeries:
 
-    OTHER_DATA_NAME : list = ["timestamp", "samplingFrequency", "jointPosition"]
+    JOINT_LABLE : list = ["frame","timestamp","r_shoulder_pitch","r_shoulder_roll","r_arm_yaw","r_elbow_pitch","r_forearm_yaw","r_wrist_pitch","r_wrist_roll","r_gripper","l_shoulder_pitch","l_shoulder_roll","l_arm_yaw","l_elbow_pitch","l_forearm_yaw","l_wrist_pitch","l_wrist_roll","l_gripper","head_x","head_y","head_z"]
 
     def __init__(self, samplingFrequency: float, recordDurationSeconds: float, jointPosition: list = None):
         self.samplingFrequency  = samplingFrequency
@@ -45,7 +45,7 @@ class TimeSeries:
     
     def saveToCSV(self, fileName : str) -> None:
         with open(fileName, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=';',quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            writer = csv.writer(csvfile, delimiter=',',quotechar='|', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(["timestamp"]+[i for i in self.JOINT_LABLE] + ["samplingFrequency", "recordDuration"])
             for i in self.jointPosition:
                 writer.writerow([i["timestamp"]]+[i[j] for j in self.JOINT_LABLE]+[self.samplingFrequency, self.recordDuration])
@@ -64,15 +64,20 @@ class TimeSeries:
         recordDuration = None
 
         with open(fileName, newline='') as csvfile:
-            reader = csv.reader(csvfile, delimiter=';', quotechar='|')
+            reader = csv.reader(csvfile, delimiter=',', quotechar='|')
             
             header = next(reader)
+            df = pd.read_csv(fileName)
+            
             
             timestamp_idx = header.index("timestamp")
-            sf_idx = header.index("samplingFrequency")
-            rd_idx = header.index("recordDuration")
+            # rd_idx = header.index("recordDuration")
+            rd_idx = df["timestamp"].iloc[-1]
+            # sf_idx = header.index("samplingFrequency")
+            sf_idx = df["frame"].iloc[-1]/rd_idx
 
-            joint_indices = {name: header.index(name) for name in cls.OTHER_DATA_NAME + config.ARM_MOTOR_NAME + config.HEAD_MOTOR_NAME}
+
+            joint_indices = {name: header.index(name) for name in cls.JOINT_LABLE}
 
             for row in reader:
                 frame = {}
@@ -85,9 +90,9 @@ class TimeSeries:
                 jointPosition.append(frame)
 
                 if samplingFrequency is None:
-                    samplingFrequency = float(row[sf_idx])
+                    samplingFrequency = float(sf_idx)
                 if recordDuration is None:
-                    recordDuration = float(row[rd_idx])
+                    recordDuration = float(rd_idx)
 
             return cls(samplingFrequency, recordDuration, jointPosition)
 
