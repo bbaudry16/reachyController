@@ -1,12 +1,13 @@
 import json
 import matplotlib.pyplot as plt
-import config
+from . import config
 import csv
 
+from . import config
 
 class TimeSeries:
 
-    JOINT_LABLE : list = ["l_shoulder_pitch", "l_shoulder_roll", "l_arm_yaw", "l_elbow_pitch","l_wrist_pitch", "r_shoulder_pitch", "r_shoulder_roll", "r_arm_yaw", "r_elbow_pitch", "r_wrist_pitch"]
+    OTHER_DATA_NAME : list = ["timestamp", "samplingFrequency", "jointPosition"]
 
     def __init__(self, samplingFrequency: float, recordDurationSeconds: float, jointPosition: list = None):
         self.samplingFrequency  = samplingFrequency
@@ -71,7 +72,7 @@ class TimeSeries:
             sf_idx = header.index("samplingFrequency")
             rd_idx = header.index("recordDuration")
 
-            joint_indices = {name: header.index(name) for name in cls.JOINT_LABLE}
+            joint_indices = {name: header.index(name) for name in cls.OTHER_DATA_NAME + config.ARM_MOTOR_NAME + config.HEAD_MOTOR_NAME}
 
             for row in reader:
                 frame = {}

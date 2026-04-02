@@ -2,13 +2,13 @@ from reachy_sdk import ReachySDK
 from concurrent.futures import ThreadPoolExecutor
 import time
 
-import armController as ac
-import headController as hc
-import torsoController as to
-import collisionManager as col
-import consoleManager as cm
-from timeSeries import TimeSeries
-import config
+from . import armController as ac
+from . import headController as hc
+from . import torsoController as to
+from . import collisionManager as col
+from . import consoleManager as cm
+from .timeSeries import TimeSeries
+from . import config
 
 
 class ReachyController:

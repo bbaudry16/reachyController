@@ -5,11 +5,11 @@ from scipy.spatial.transform import Rotation as R
 import time
 from math import cos, sin, radians
 
-import config
-import reachyPart as rp
-import consoleManager as cm
-from timeSeries import TimeSeries
-from capsuleCollider import CapsuleCollider
+from . import config
+from . import reachyPart as rp
+from . import consoleManager as cm
+from .timeSeries import TimeSeries
+from .capsuleCollider import CapsuleCollider
 
 
 class ReachyJoint:
@@ -27,7 +27,7 @@ class ReachyArm(rp.ReachyPart):
     JOINT_ELBOW_PITCH    = ReachyJoint(0.0,   -125.0)
     JOINT_FOREARM_YAW    = ReachyJoint(100.0, -100.0)
     JOINT_WRIST_PITCH    = ReachyJoint(45.0,   -45.0)
-    JOINT_WRIST_ROLL     = ReachyJoint(35,      -55)
+    JOINT_WRIST_ROLL     = ReachyJoint(35,       -55)
     JOINT_GRIPPER        = ReachyJoint(20.0,   -69.0)
 
     # ─── Console ───────────────────────────────────────────────────────────────
@@ -124,6 +124,8 @@ class ReachyArm(rp.ReachyPart):
     # ─── Motion ────────────────────────────────────────────────────────────────
 
     def _safeGoto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear):
+
+        
         if not self.canMove:
             if not self.hasNotifyImpossibleMove:
                 cm.MKprintSafety("Cannot safely move — please reset Reachy position.", self.CLASS_NAME, self.CLASS_COLOR)

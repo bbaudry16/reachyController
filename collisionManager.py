@@ -1,7 +1,7 @@
 from __future__ import annotations
-from capsuleCollider import CapsuleCollider
-from reachyPart import ReachyPart
-import armController as ac
+from .capsuleCollider import CapsuleCollider
+from .reachyPart import ReachyPart
+from . import armController as ac
 
 
 class CollisionManager:

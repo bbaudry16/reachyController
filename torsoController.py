@@ -1,7 +1,7 @@
 from __future__ import annotations
-from reachyPart import ReachyPart
-from capsuleCollider import CapsuleCollider
-import config
+from .reachyPart import ReachyPart
+from .capsuleCollider import CapsuleCollider
+from . import config
 
 
 class ReachyTorso(ReachyPart):

@@ -1,10 +1,10 @@
 from reachy_sdk import trajectory, ReachySDK
 import time
 
-import config
-import reachyPart as rp
-import consoleManager as cm
-from timeSeries import TimeSeries
+from . import config
+from . import reachyPart as rp
+from . import consoleManager as cm
+from .timeSeries import TimeSeries
 
 
 class ReachyDisk:

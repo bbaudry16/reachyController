@@ -1,5 +1,5 @@
 from __future__ import annotations
-from capsuleCollider import CapsuleCollider
+from .capsuleCollider import CapsuleCollider
 
 
 class ReachyPart:
