@@ -1,7 +1,7 @@
 import json
 import matplotlib.pyplot as plt
 import pandas as pd
-import config
+from . import config
 import csv
 
 
@@ -43,12 +43,19 @@ class TimeSeries:
         with open(fileName, mode="w") as f:
             json.dump(self.toDict(), f, indent=4)
     
-    def saveToCSV(self, fileName : str) -> None:
+    def saveToCSV(self, fileName: str) -> None:
+        headers = self.JOINT_LABLE
+
         with open(fileName, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=',',quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow(["timestamp"]+[i for i in self.JOINT_LABLE] + ["samplingFrequency", "recordDuration"])
-            for i in self.jointPosition:
-                writer.writerow([i["timestamp"]]+[i[j] for j in self.JOINT_LABLE]+[self.samplingFrequency, self.recordDuration])
+            writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(headers)
+
+            for i, frame in enumerate(self.jointPosition):
+                timestamp = i / self.samplingFrequency
+                row = [i, timestamp]
+                for joint in self.JOINT_LABLE[2:]:  # skip frame et timestamp
+                    row.append(frame.get(joint, 0))
+                writer.writerow(row)
 
 
     @classmethod
@@ -60,41 +67,29 @@ class TimeSeries:
     @classmethod
     def loadFromCSV(cls, fileName: str) -> "TimeSeries":
         jointPosition = []
-        samplingFrequency = None
-        recordDuration = None
+        
+        EXCLUDE = {"frame", "timestamp", "head_x", "head_y", "head_z"}
+        MOTOR_LABELS = [l for l in cls.JOINT_LABLE if l not in EXCLUDE]
 
         with open(fileName, newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-            
             header = next(reader)
+            
             df = pd.read_csv(fileName)
-            
-            
-            timestamp_idx = header.index("timestamp")
-            # rd_idx = header.index("recordDuration")
             rd_idx = df["timestamp"].iloc[-1]
-            # sf_idx = header.index("samplingFrequency")
-            sf_idx = df["frame"].iloc[-1]/rd_idx
+            sf_idx = df["frame"].iloc[-1] / rd_idx
 
-
-            joint_indices = {name: header.index(name) for name in cls.JOINT_LABLE}
+            timestamp_idx = header.index("timestamp")
+            joint_indices = {name: header.index(name) for name in MOTOR_LABELS}
 
             for row in reader:
                 frame = {}
-
                 frame["timestamp"] = float(row[timestamp_idx])
-
                 for joint, idx in joint_indices.items():
                     frame[joint] = float(row[idx])
-
                 jointPosition.append(frame)
 
-                if samplingFrequency is None:
-                    samplingFrequency = float(sf_idx)
-                if recordDuration is None:
-                    recordDuration = float(rd_idx)
-
-            return cls(samplingFrequency, recordDuration, jointPosition)
+            return cls(float(sf_idx), float(rd_idx), jointPosition)
 
         #return cls(data["samplingFrequency"], data["recordDuration"], data["jointPosition"])
 

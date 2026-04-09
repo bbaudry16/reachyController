@@ -20,8 +20,8 @@ ELBOW_TO_WRIST     : float = 0.25
 
 CAPSULE_COLLISION_RADIUS : float = 0.04
 TABLE_Z_COORD            : float = -0.4
-TORSO_SIZE               : float = 0.263
-TORSO_COLLISION_RADIUS   : float = 0.02
+TORSO_SIZE               : float = 0.3
+TORSO_COLLISION_RADIUS   : float = 0.01
 
 # ─── Arm IDs ───────────────────────────────────────────────────────────────────
 

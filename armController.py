@@ -3,7 +3,6 @@ import numpy as np
 from reachy_sdk import trajectory, ReachySDK
 from scipy.spatial.transform import Rotation as R
 import time
-from math import cos, sin, radians
 
 from . import config
 from . import reachyPart as rp
@@ -35,7 +34,7 @@ class ReachyArm(rp.ReachyPart):
     CLASS_COLOR : str = cm.Color.CYAN
 
     def __init__(self, _reachy: ReachySDK, _armID: str, collisionManager=None) -> None:
-        self._armID  : str  = _armID
+        self._armID  : str = _armID
         self._setupConstraints()
 
         self._reachyArm         = getattr(_reachy, self._sided(config.ARM_NAME))
@@ -46,7 +45,7 @@ class ReachyArm(rp.ReachyPart):
         if self._collisionManager is None:
             cm.MKprintSafety("No collision manager set, inter-part collision will be ignored.", self.CLASS_NAME, self.CLASS_COLOR)
 
-        self.canMove              : bool = True
+        self.canMove                 : bool = True
         self.hasNotifyImpossibleMove : bool = False
 
     # ─── Setup ─────────────────────────────────────────────────────────────────
@@ -100,7 +99,7 @@ class ReachyArm(rp.ReachyPart):
             cm.MKprintSafety(f"{jointName} clamped to {r}", self.CLASS_NAME, self.CLASS_COLOR)
         return r
 
-    # ─── Collision ─────────────────────────────────────────────────────────────
+    # ─── Collision checks ──────────────────────────────────────────────────────
 
     def _collideWithTable(self, joint_dict: dict) -> bool:
         return self.getHandPositionFromJointsPosition(joint_dict)[2] <= config.TABLE_Z_COORD
@@ -123,9 +122,7 @@ class ReachyArm(rp.ReachyPart):
 
     # ─── Motion ────────────────────────────────────────────────────────────────
 
-    def _safeGoto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear):
-
-        
+    def _safeGoto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear) -> None:
         if not self.canMove:
             if not self.hasNotifyImpossibleMove:
                 cm.MKprintSafety("Cannot safely move — please reset Reachy position.", self.CLASS_NAME, self.CLASS_COLOR)
@@ -145,11 +142,11 @@ class ReachyArm(rp.ReachyPart):
 
         trajectory.goto(safe_dict, duration=duration, interpolation_mode=interpolation)
 
-    def _debug_goto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear):
+    def _debug_goto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear) -> None:
         """Not safe — debug use only."""
         trajectory.goto(joint_dict, duration=duration, interpolation_mode=interpolation)
 
-    def _debug_placeHandOnTable(self, duration: float = 1.0):
+    def _debug_placeHandOnTable(self, duration: float = 1.0) -> None:
         target = {
             self._joints[self._sided("shoulder_pitch")]: 0.0,
             self._joints[self._sided("shoulder_roll")]:  0.0,
@@ -167,7 +164,11 @@ class ReachyArm(rp.ReachyPart):
         jointPos = self._reachyArm.inverse_kinematics(IKMatrix)
         if self.canMove:
             cm.MKprint(f"Going to {goalPosition} with rotation {goalRotation} in {duration}s.", self.CLASS_NAME, self.CLASS_COLOR)
-        self._safeGoto({joint: pos for joint, pos in zip(self._reachyArm.joints.values(), jointPos)}, duration=duration, interpolation=interpolation)
+        self._safeGoto(
+            {joint: pos for joint, pos in zip(self._reachyArm.joints.values(), jointPos)},
+            duration=duration,
+            interpolation=interpolation
+        )
 
     def changeHandAngle(self, angleEuler: float, duration: float) -> None:
         gripperName  = self._sided(config.HAND_MOTOR_NAME)
@@ -181,7 +182,7 @@ class ReachyArm(rp.ReachyPart):
     def closeHand(self, duration: float = 0.5) -> None:
         self.changeHandAngle(self.JOINT_GRIPPER.maxAngle, duration)
 
-    # ─── Kinematics helpers ────────────────────────────────────────────────────
+    # ─── Kinematics ────────────────────────────────────────────────────────────
 
     def _eulerToMatrix(self, anglesDeg: list):
         return R.from_euler("xyz", anglesDeg, True).as_matrix()
@@ -196,68 +197,71 @@ class ReachyArm(rp.ReachyPart):
         ])
 
     def getShoulderPosition(self) -> list:
+        """
+        Shoulder position in world frame (origin = torso center).
+        Right arm: x = -ORIGIN_TO_SHOULDER
+        Left arm:  x = +ORIGIN_TO_SHOULDER
+        """
         x = -config.ORIGIN_TO_SHOULDER
         if self._armID == config.ARM_LEFT_ID:
             x *= -1
         return [x, 0, 0]
 
-    def getElbowPositionFromAngles(self, pitchDeg: float, rollDeg: float, yawDeg: float) -> list:
-        L     = config.SHOULDER_TO_ELBOW
-        pitch = radians(pitchDeg)
-        roll  = radians(rollDeg)
-        yaw   = radians(yawDeg)
-
-        Rx = np.array([[1, 0, 0], [0, cos(roll), -sin(roll)], [0, sin(roll), cos(roll)]])
-        Ry = np.array([[cos(pitch), 0, sin(pitch)], [0, 1, 0], [-sin(pitch), 0, cos(pitch)]])
-        Rz = np.array([[cos(yaw), -sin(yaw), 0], [sin(yaw), cos(yaw), 0], [0, 0, 1]])
-
-        v0           = np.array([0, 0, -L])
-        shoulder     = np.array(self.getShoulderPosition())
-        return (shoulder + Rz @ Ry @ Rx @ v0).tolist()
-
-    def getElbowPosition(self) -> list:
-        return self.getElbowPositionFromAngles(
-            self._joints[self._sided("shoulder_pitch")].present_position,
-            self._joints[self._sided("shoulder_roll")].present_position,
-            self._joints[self._sided("arm_yaw")].present_position,
-        )
-
-    def getElbowPositionFromJointsPosition(self, joint_dict: dict) -> list:
-        return self.getElbowPositionFromAngles(
-            joint_dict[self._joints[self._sided("shoulder_pitch")]],
-            joint_dict[self._joints[self._sided("shoulder_roll")]],
-            joint_dict[self._joints[self._sided("arm_yaw")]],
-        )
-
-    def getHandPositionFromForwardKinematicsMatrix(self, fk: list) -> list:
-        return [fk[0][3], fk[1][3], fk[2][3]]
+    def getHandPositionFromForwardKinematicsMatrix(self, fk) -> list:
+        """Extract XYZ translation from a 4x4 FK matrix."""
+        return [float(fk[0][3]), float(fk[1][3]), float(fk[2][3])]
 
     def getHandPosition(self) -> list:
-        return self.getHandPositionFromForwardKinematicsMatrix(self._reachyArm.forward_kinematics())
+        """
+        Hand position in world frame.
+        The SDK FK has its origin at the shoulder with no global rotation offset,
+        so the returned coordinates are directly in world frame.
+        """
+        return self.getHandPositionFromForwardKinematicsMatrix(
+            self._reachyArm.forward_kinematics()
+        )
 
     def getHandPositionFromJointsPosition(self, joint_dict: dict) -> list:
-        ordered = ["shoulder_pitch", "shoulder_roll", "arm_yaw", "elbow_pitch", "forearm_yaw", "wrist_pitch", "wrist_roll"]
+        """
+        Hand position in world frame from a joint dict.
+        joint_dict keys must be joint SDK objects (as returned by self._joints).
+        Only the 7 arm joints are used (gripper and timestamp are ignored).
+        """
+        ordered = ["shoulder_pitch", "shoulder_roll", "arm_yaw",
+                   "elbow_pitch", "forearm_yaw", "wrist_pitch", "wrist_roll"]
         jointPos = [joint_dict[self._joints[self._sided(j)]] for j in ordered]
-        return self.getHandPositionFromForwardKinematicsMatrix(self._reachyArm.forward_kinematics(jointPos))
+        fk = self._reachyArm.forward_kinematics(jointPos)
+        return self.getHandPositionFromForwardKinematicsMatrix(fk)
 
     # ─── Collision shapes ──────────────────────────────────────────────────────
+    #
+    # The arm is modelled as two capsules:
+    #   capsule 1 : shoulder → midpoint  (upper arm approximation)
+    #   capsule 2 : midpoint → hand      (forearm approximation)
+    #
+    # The midpoint is the geometric average of shoulder and hand positions.
+    # This avoids manual elbow FK which proved unreliable due to unknown
+    # SDK joint-frame conventions — the SDK has no partial FK support.
+
+    def _midpoint(self, a: list, b: list) -> list:
+        return [(a[i] + b[i]) / 2.0 for i in range(3)]
 
     def getCollision(self) -> list[CapsuleCollider]:
         shoulder = self.getShoulderPosition()
-        elbow    = self.getElbowPosition()
         hand     = self.getHandPosition()
+        mid      = self._midpoint(shoulder, hand)
         return [
-            CapsuleCollider(shoulder, elbow, config.CAPSULE_COLLISION_RADIUS),
-            CapsuleCollider(elbow,    hand,  config.CAPSULE_COLLISION_RADIUS),
+            CapsuleCollider(shoulder, mid,  config.CAPSULE_COLLISION_RADIUS),
+            CapsuleCollider(mid,      hand, config.CAPSULE_COLLISION_RADIUS),
         ]
 
     def getCollisionFromPosition(self, joint_dict: dict) -> list[CapsuleCollider]:
         shoulder = self.getShoulderPosition()
-        elbow    = self.getElbowPositionFromJointsPosition(joint_dict)
         hand     = self.getHandPositionFromJointsPosition(joint_dict)
+        mid      = self._midpoint(shoulder, hand)
         return [
-            CapsuleCollider(shoulder, elbow, config.CAPSULE_COLLISION_RADIUS),
-            CapsuleCollider(elbow,    hand,  config.CAPSULE_COLLISION_RADIUS),
+            CapsuleCollider(shoulder, mid,  config.CAPSULE_COLLISION_RADIUS),
+            CapsuleCollider(mid,      hand, config.CAPSULE_COLLISION_RADIUS),
         ]
 
     # ─── Record / Play ─────────────────────────────────────────────────────────
@@ -267,10 +271,13 @@ class ReachyArm(rp.ReachyPart):
         samplingTime = 1.0 / samplingFrequencyHertz
         start        = time.time()
 
-        cm.MKprint(f"Recording {self._sided(config.ARM_NAME)} for {recordDurationSeconds}s at {samplingFrequencyHertz}Hz.", self.CLASS_NAME, self.CLASS_COLOR)
+        cm.MKprint(
+            f"Recording {self._sided(config.ARM_NAME)} for {recordDurationSeconds}s at {samplingFrequencyHertz}Hz.",
+            self.CLASS_NAME, self.CLASS_COLOR
+        )
 
         while (time.time() - start) < recordDurationSeconds:
-            frame : dict = {name: joint.present_position for name, joint in self._joints.items()}
+            frame = {name: joint.present_position for name, joint in self._joints.items()}
             frame["timestamp"] = time.time()
             trajectories.append(frame)
             time.sleep(samplingTime)
@@ -278,31 +285,44 @@ class ReachyArm(rp.ReachyPart):
         cm.MKprint(f"Recording done for {self._sided(config.ARM_NAME)}.", self.CLASS_NAME, self.CLASS_COLOR)
         return TimeSeries(samplingFrequencyHertz, recordDurationSeconds, trajectories)
 
-    def playArmRecord(self, record: TimeSeries, startDuration: float = 3.0) -> None:
+    def playArmRecord(self, record: TimeSeries, startDuration: float = 3.0, collisionCheckInterval: int = 0) -> None:
+        """
+        Play a recorded arm trajectory.
+        collisionCheckInterval: run collision check every N frames (default 5).
+        Collision is not checked on frame 0 — the starting position is assumed
+        safe since it was physically reached during recording.
+        """
         firstPoint = {
             self._joints[m]: pos
             for m, pos in record.jointPosition[0].items()
             if m in self._joints
         }
-
-
         samplingTime = 1.0 / record.samplingFrequency
+
+        cm.MKprintDebug(f"samplingTime={samplingTime} samplingFrequency={record.samplingFrequency}", self.CLASS_NAME, self.CLASS_COLOR)
 
         cm.MKprint(f"Playing record for {self._sided(config.ARM_NAME)}.", self.CLASS_NAME, self.CLASS_COLOR)
         self._safeGoto(firstPoint, duration=startDuration)
 
-        start_time = record.jointPosition[0]["timestamp"]
-
-        for i in range(len(record.jointPosition) - 1):
-            current = record.jointPosition[i]
-            next_frame = record.jointPosition[i + 1]
-
-            dt = next_frame["timestamp"] - current["timestamp"]
+        for i, jointsPositions in enumerate(record.jointPosition):
+            t_start = time.time()
 
             safe_step = {
                 self._joints[name]: pos
-                for name, pos in current.items()
+                for name, pos in jointsPositions.items()
                 if name in self._joints
             }
 
-            self._safeGoto(safe_step, duration=dt)
+
+            for name, pos in jointsPositions.items():
+                if i > 0 and i % collisionCheckInterval == 0:
+                    if self._checkCollision(safe_step):
+                        return
+                
+                if name in self._joints:
+                    self._joints[name].goal_position = pos
+
+            elapsed = time.time() - t_start
+            remaining = samplingTime - elapsed
+            if remaining > 0:
+                time.sleep(remaining)
