@@ -122,25 +122,39 @@ class ReachyArm(rp.ReachyPart):
 
     # ─── Motion ────────────────────────────────────────────────────────────────
 
-    def _safeGoto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear) -> None:
-        if not self.canMove:
-            if not self.hasNotifyImpossibleMove:
-                cm.MKprintSafety("Cannot safely move — please reset Reachy position.", self.CLASS_NAME, self.CLASS_COLOR)
-                self.hasNotifyImpossibleMove = True
-            return
+    def _safeGoto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear, steps: int = config.SAFE_GOTO_STEPS) -> None:
 
-        if self._checkCollision(joint_dict):
-            return
+            if not self.canMove:
+                if not self.hasNotifyImpossibleMove:
+                    cm.MKprintSafety("Cannot safely move — please reset Reachy position.", self.CLASS_NAME, self.CLASS_COLOR)
+                    self.hasNotifyImpossibleMove = True
+                return
 
-        safe_dict = {}
-        for joint, pos in joint_dict.items():
-            name = joint.name
-            if name in self._joint_constraints:
-                limits = self._joint_constraints[name]
-                pos = self._clamp(name, pos, limits.minAngle, limits.maxAngle)
-            safe_dict[joint] = pos
+            safe_target = {}
+            for joint, pos in joint_dict.items():
+                name = joint.name
+                if name in self._joint_constraints:
+                    limits = self._joint_constraints[name]
+                    pos = self._clamp(name, pos, limits.minAngle, limits.maxAngle)
+                safe_target[joint] = pos
 
-        trajectory.goto(safe_dict, duration=duration, interpolation_mode=interpolation)
+            start_positions = {joint: joint.present_position for joint in safe_target}
+
+            step_duration = duration / steps
+
+            for i in range(1, steps + 1):
+                alpha = i / steps
+
+
+                interpolated = {
+                    joint: start_positions[joint] + alpha * (safe_target[joint] - start_positions[joint])
+                    for joint in safe_target
+                }
+
+                if self._checkCollision(interpolated):
+                    return
+
+                trajectory.goto(interpolated, duration=step_duration, interpolation_mode=interpolation)
 
     def _debug_goto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear) -> None:
         """Not safe — debug use only."""
