@@ -284,15 +284,19 @@ class ReachyArm(rp.ReachyPart):
         trajectories = []
         samplingTime = 1.0 / samplingFrequencyHertz
         start        = time.time()
+        last_valid   = {}
 
-        cm.MKprint(
-            f"Recording {self._sided(config.ARM_NAME)} for {recordDurationSeconds}s at {samplingFrequencyHertz}Hz.",
-            self.CLASS_NAME, self.CLASS_COLOR
-        )
+        cm.MKprint(f"Recording {self._sided(config.ARM_NAME)} for {recordDurationSeconds}s at {samplingFrequencyHertz}Hz.", self.CLASS_NAME, self.CLASS_COLOR)
 
         while (time.time() - start) < recordDurationSeconds:
             frame = {name: joint.present_position for name, joint in self._joints.items()}
-            frame["timestamp"] = time.time()
+
+            if last_valid and all(v == 0.0 for v in frame.values()):
+                cm.MKprintSafety("Suspicious all-zero frame detected during recording — using last valid frame.", self.CLASS_NAME, self.CLASS_COLOR)
+                frame = last_valid.copy()
+            else:
+                last_valid = frame
+
             trajectories.append(frame)
             time.sleep(samplingTime)
 
@@ -306,6 +310,13 @@ class ReachyArm(rp.ReachyPart):
         Collision is not checked on frame 0 — the starting position is assumed
         safe since it was physically reached during recording.
         """
+
+        if not self.canMove:
+            if not self.hasNotifyImpossibleMove:
+                    cm.MKprintSafety("Cannot safely move — please reset Reachy position.", self.CLASS_NAME, self.CLASS_COLOR)
+                    self.hasNotifyImpossibleMove = True
+            return
+
         firstPoint = {
             self._joints[m]: pos
             for m, pos in record.jointPosition[0].items()

@@ -26,21 +26,18 @@ class CollisionManager:
             else:
                 moving_colliders += arm.getCollisionFromPosition(joint_dict)
 
-        static_colliders += self._torso.getCollision()
+        torso_colliders = self._torso.getCollision()
+
+        forearm_only = moving_colliders[1:]
 
         for moving in moving_colliders:
             for static in static_colliders:
                 if moving.intersects(static):
-                    dist = CapsuleCollider.segmentSegmentDistance(
-                        moving.pointA, moving.pointB,
-                        static.pointA, static.pointB
-                    )
-                    cm.MKprintDebug(
-                        f"Collision! moving={moving.pointA.tolist()}->{moving.pointB.tolist()} r={moving.radius} | "
-                        f"static={static.pointA.tolist()}->{static.pointB.tolist()} r={static.radius} | "
-                        f"dist={dist:.4f} sum_r={moving.radius + static.radius:.4f}",
-                        "CollisionManager", cm.Color.RED
-                    )
+                    return False
+
+        for moving in forearm_only:
+            for static in torso_colliders:
+                if moving.intersects(static):
                     return False
 
         return True
