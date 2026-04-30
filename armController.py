@@ -12,6 +12,10 @@ from .capsuleCollider import CapsuleCollider
 
 
 class ReachyJoint:
+    """
+    describe reachy joint with a max and a min angle
+    PARAMETER maxAngleEuler : float, minAngleEuler : float
+    """
     def __init__(self, maxAngleEuler: float, minAngleEuler: float):
         self.maxAngle = maxAngleEuler
         self.minAngle = minAngleEuler
@@ -51,12 +55,25 @@ class ReachyArm(rp.ReachyPart):
     # ─── Setup ─────────────────────────────────────────────────────────────────
 
     def _setupConstraints(self) -> None:
+        """
+        setup contraint for shoulder wrist and gripper
+        PARAMETEr None
+        RETURN None
+        """
+
         if self._armID == config.ARM_LEFT_ID:
             self.JOINT_SHOULDER_ROLL = ReachyJoint(180.0, -10.0)
             self.JOINT_WRIST_ROLL    = ReachyJoint(55, -35)
             self.JOINT_GRIPPER       = ReachyJoint(69, -20)
 
+        return None
+
     def _setupJoints(self) -> dict:
+        """
+        setup joint in __init__
+        PARAMETER None
+        RETURN dict
+        """
         r = {}
         for name in config.ARM_MOTOR_NAME:
             sided = self._sided(name)
@@ -64,6 +81,11 @@ class ReachyArm(rp.ReachyPart):
         return r
 
     def _setupJointConstraints(self) -> dict:
+        """
+        setup all joint contraint in __init__
+        PARAMETER None
+        RETURN dict
+        """
         return {
             self._sided("shoulder_pitch"): self.JOINT_SHOULDER_PITCH,
             self._sided("shoulder_roll"):  self.JOINT_SHOULDER_ROLL,
@@ -78,22 +100,50 @@ class ReachyArm(rp.ReachyPart):
     # ─── Public setters ────────────────────────────────────────────────────────
 
     def setCollisionManager(self, collisionManager) -> None:
+        """
+        set a collision manager in __init__
+        PARAMETER None
+        RETURN None
+        """
         self._collisionManager = collisionManager
         cm.MKprintSafety("Collision manager set — inter-part collision is now active.", self.CLASS_NAME, self.CLASS_COLOR)
 
+        return None
+
     def getArmId(self) -> str:
+        """
+        return the arm id
+        PARAMETER None
+        RETURN str
+        """
         return self._armID
 
     def resetCanMove(self) -> None:
+        """
+        reset capability to move (use after an obstacle)
+        PARAMETER None
+        RETURN None
+        """
         self.canMove = True
         self.hasNotifyImpossibleMove = False
 
     # ─── Internal helpers ──────────────────────────────────────────────────────
 
     def _sided(self, name: str) -> str:
+        """
+        return a sider string, example : "gripper" -> "l_gripper"
+        PARAMETER name : str
+        RETURN str
+        """
         return self._armID + "_" + name
 
     def _clamp(self, jointName: str, value: float, min_v: float, max_v: float) -> float:
+        """
+        clamp a value between min and max
+        PARAMETER value : float, min_v : float, max_v : float
+        RETURN float
+        """
+
         r = max(min(value, max_v), min_v)
         if value < min_v or value > max_v:
             cm.MKprintSafety(f"{jointName} clamped to {r}", self.CLASS_NAME, self.CLASS_COLOR)
@@ -102,14 +152,29 @@ class ReachyArm(rp.ReachyPart):
     # ─── Collision checks ──────────────────────────────────────────────────────
 
     def _collideWithTable(self, joint_dict: dict) -> bool:
+        """
+        return true if the hand is below the table
+        PARAMETER joint_dict : dict
+        RETURN bool
+        """
         return self.getHandPositionFromJointsPosition(joint_dict)[2] <= config.TABLE_Z_COORD
 
     def _collideWithOtherPart(self, joint_dict: dict) -> bool:
+        """
+        return if there is a collision with other part of the robot
+        PARAMETER joint_dict : dict
+        RETURN bool
+        """
         if self._collisionManager is not None:
             return not self._collisionManager.askValidMovement(self._armID, joint_dict)
         return False
 
     def _checkCollision(self, joint_dict: dict) -> bool:
+        """
+        check all type of collision like table and other part and froze the robot if one is detected
+        PARAMETER joint_dict : dict
+        RETURN bool
+        """
         if self._collideWithTable(joint_dict):
             cm.MKprintSafety("Collision with table!", self.CLASS_NAME, self.CLASS_COLOR)
             self.canMove = False
@@ -123,44 +188,53 @@ class ReachyArm(rp.ReachyPart):
     # ─── Motion ────────────────────────────────────────────────────────────────
 
     def _safeGoto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear, steps: int = config.SAFE_GOTO_STEPS) -> None:
+        """
+        a goto that take in account collision and clamping
+        PARAMETER joint_dct : dict, duration : float, interpolation : trajectory.interpolation, steps : int
+        RETURN None
+        """
+        if not self.canMove:
+            if not self.hasNotifyImpossibleMove:
+                cm.MKprintSafety("Cannot safely move — please reset Reachy position.", self.CLASS_NAME, self.CLASS_COLOR)
+                self.hasNotifyImpossibleMove = True
+            return
 
-            if not self.canMove:
-                if not self.hasNotifyImpossibleMove:
-                    cm.MKprintSafety("Cannot safely move — please reset Reachy position.", self.CLASS_NAME, self.CLASS_COLOR)
-                    self.hasNotifyImpossibleMove = True
+        safe_target = {}
+        for joint, pos in joint_dict.items():
+            name = joint.name
+            if name in self._joint_constraints:
+                limits = self._joint_constraints[name]
+                pos = self._clamp(name, pos, limits.minAngle, limits.maxAngle)
+            safe_target[joint] = pos
+
+        start_positions = {joint: joint.present_position for joint in safe_target}
+
+        step_duration = duration / steps
+
+        for i in range(1, steps + 1):
+            alpha = i / steps
+
+
+            interpolated = {
+                joint: start_positions[joint] + alpha * (safe_target[joint] - start_positions[joint])
+                for joint in safe_target
+            }
+
+            if self._checkCollision(interpolated):
                 return
 
-            safe_target = {}
-            for joint, pos in joint_dict.items():
-                name = joint.name
-                if name in self._joint_constraints:
-                    limits = self._joint_constraints[name]
-                    pos = self._clamp(name, pos, limits.minAngle, limits.maxAngle)
-                safe_target[joint] = pos
+            trajectory.goto(interpolated, duration=step_duration, interpolation_mode=interpolation)
 
-            start_positions = {joint: joint.present_position for joint in safe_target}
-
-            step_duration = duration / steps
-
-            for i in range(1, steps + 1):
-                alpha = i / steps
-
-
-                interpolated = {
-                    joint: start_positions[joint] + alpha * (safe_target[joint] - start_positions[joint])
-                    for joint in safe_target
-                }
-
-                if self._checkCollision(interpolated):
-                    return
-
-                trajectory.goto(interpolated, duration=step_duration, interpolation_mode=interpolation)
+        return None
 
     def _debug_goto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear) -> None:
         """Not safe — debug use only."""
         trajectory.goto(joint_dict, duration=duration, interpolation_mode=interpolation)
 
     def _debug_placeHandOnTable(self, duration: float = 1.0) -> None:
+        """
+        do not use unless debugging
+        """
         target = {
             self._joints[self._sided("shoulder_pitch")]: 0.0,
             self._joints[self._sided("shoulder_roll")]:  0.0,
@@ -174,6 +248,12 @@ class ReachyArm(rp.ReachyPart):
         self._debug_goto(target, duration=duration)
 
     def gotoCartesianPoint(self, goalPosition: list, goalRotation: list, duration: float = 0.1, interpolation=trajectory.interpolation.linear) -> None:
+        """
+        move the end to a cartesian coordinate with a position, a rotation, a duraction and an interpolation method
+        PARAMETER golaPosition : list, goalRotation : list, duration : float, interpolation : trajectory.interpolation
+        RETURN None
+        """
+        
         IKMatrix = self._getIKMatrix(goalPosition, goalRotation)
         jointPos = self._reachyArm.inverse_kinematics(IKMatrix)
         if self.canMove:
@@ -184,21 +264,49 @@ class ReachyArm(rp.ReachyPart):
             interpolation=interpolation
         )
 
+        return None
+
     def changeHandAngle(self, angleEuler: float, duration: float) -> None:
+        """
+        change gripper angle with a duration
+        PARAMETER angleEuler : float, duration : float
+        RETURN None
+        """
         gripperName  = self._sided(config.HAND_MOTOR_NAME)
         gripperJoint = self._joints[gripperName]
         safe_angle   = self._clamp(gripperName, angleEuler, self.JOINT_GRIPPER.minAngle, self.JOINT_GRIPPER.maxAngle)
         self._safeGoto({gripperJoint: safe_angle}, duration=duration)
 
+        return None
+
     def openHand(self, duration: float = 0.5) -> None:
+        """
+        open the hand with a duration
+        PARAMETER duration
+        RETURN None
+        """
         self.changeHandAngle(self.JOINT_GRIPPER.minAngle, duration)
 
+        return None
+
     def closeHand(self, duration: float = 0.5) -> None:
+        """
+        close the hand with a duration
+        PARAMETER duration : float
+        RETURN None
+        """
         self.changeHandAngle(self.JOINT_GRIPPER.maxAngle, duration)
 
+        return None
+    
     # ─── Kinematics ────────────────────────────────────────────────────────────
 
     def _eulerToMatrix(self, anglesDeg: list):
+        """
+        transform a euler angle list to a matrix
+        PARAMETER anglesDeg : list
+        Return list
+        """
         return R.from_euler("xyz", anglesDeg, True).as_matrix()
 
     def _getIKMatrix(self, goalPosition: list, goalRotationDeg: list):
