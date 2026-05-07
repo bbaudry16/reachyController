@@ -28,13 +28,21 @@ class CollisionManager:
 
         torso_colliders = self._torso.getCollision()
 
-        forearm_only = moving_colliders[1:]
-
+        # ── Arm vs opposite arm ───────────────────────────────────────────────
+        # Both capsules (upper arm and forearm) checked against each other.
         for moving in moving_colliders:
             for static in static_colliders:
                 if moving.intersects(static):
                     return False
 
+        # ── Arm vs torso ──────────────────────────────────────────────────────
+        # Only the FOREARM capsule (index 1 = midpoint→hand) is checked against
+        # the torso. The upper arm capsule (shoulder→midpoint) uses a geometric
+        # midpoint heuristic based on the FK segment shoulder→hand, which can
+        # cross close to the torso axis even in safe poses (especially the right
+        # arm whose shoulder is at X=-0.19m). Checking only the forearm avoids
+        # false positives while still catching real arm-into-torso collisions.
+        forearm_only = moving_colliders[1:]
         for moving in forearm_only:
             for static in torso_colliders:
                 if moving.intersects(static):

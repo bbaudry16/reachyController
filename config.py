@@ -19,9 +19,17 @@ ELBOW_TO_WRIST     : float = 0.25
 # ─── Collision ─────────────────────────────────────────────────────────────────
 
 CAPSULE_COLLISION_RADIUS : float = 0.04
+
 TABLE_Z_COORD            : float = -0.4
-TORSO_SIZE               : float = 0.3
-TORSO_COLLISION_RADIUS   : float = 0.05
+
+# Torso capsule : origin [0,0,0] (shoulder height) to [0,0,-TORSO_SIZE].
+# TORSO_COLLISION_RADIUS is kept small (0.03m) because the midpoint heuristic
+# used for the forearm capsule is geometrically approximate — a conservative
+# radius prevents false positives on the right arm whose FK segment crosses
+# close to the torso axis in safe poses.
+TORSO_SIZE               : float = 0.40
+TORSO_COLLISION_RADIUS   : float = 0.03
+
 SAFE_GOTO_STEPS : int = 5
 
 # ─── Arm IDs ───────────────────────────────────────────────────────────────────
