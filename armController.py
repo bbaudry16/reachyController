@@ -51,8 +51,15 @@ class ReachyArm(rp.ReachyPart):
 
         self.canMove                 : bool = True
         self.hasNotifyImpossibleMove : bool = False
+        self.collisionWithTableOn : bool = True
 
     # ─── Setup ─────────────────────────────────────────────────────────────────
+
+    def activateCollisionWithTable(self):
+        self.collisionWithTableOn = True
+    
+    def desactivateCollisionWithTable(self):
+        self.collisionWithTableOn = False
 
     def _setupConstraints(self) -> None:
         """
@@ -153,7 +160,7 @@ class ReachyArm(rp.ReachyPart):
         PARAMETER joint_dict : dict
         RETURN bool
         """
-        return self.getHandPositionFromJointsPosition(joint_dict)[2] <= config.TABLE_Z_COORD
+        return self.collisionWithTableOn and self.getHandPositionFromJointsPosition(joint_dict)[2] <= config.TABLE_Z_COORD
 
     def _collideWithOtherPart(self, joint_dict: dict) -> bool:
         """
