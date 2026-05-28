@@ -51,7 +51,7 @@ class ReachyHead(rp.ReachyPart):
             time.sleep(samplingTime)
 
         cm.MKprint("Recording done for head.", self.CLASS_NAME, self.CLASS_COLOR)
-        return TimeSeries(samplingFrequencyHertz, recordDurationSeconds, trajectories)
+        return TimeSeries(samplingFrequencyHertz, recordDurationSeconds, trajectories, [0, 0, 1])
 
     def playHeadRecord(self, record: TimeSeries, startDuration: float = 3.0) -> None:
         firstPoint = {

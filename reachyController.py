@@ -28,8 +28,6 @@ class ReachyController:
         self.armLeft.setCollisionManager(self.collision)
         self.armRight.setCollisionManager(self.collision)
 
-        self._executor = ThreadPoolExecutor(max_workers=10)
-
     # ─── Power ─────────────────────────────────────────────────────────────────
 
     def turnOn(self) -> None:
@@ -44,13 +42,7 @@ class ReachyController:
         time.sleep(0.5)
         for joint in self.reachy.joints.values():
             joint.goal_position = joint.present_position
-
-    # ─── Async helper ──────────────────────────────────────────────────────────
-
-    def runAsync(self, func, *args):
-        """Submit a function to the thread pool. Returns a Future."""
-        return self._executor.submit(func, *args)
-
+    '''
     # ─── Record ────────────────────────────────────────────────────────────────
 
     def record(self, recordDurationSeconds: float, samplingFrequencyHertz: float,
@@ -81,7 +73,8 @@ class ReachyController:
 
         cm.MKprint("|--- Stop recording ----|", self.CLASS_NAME, self.CLASS_COLOR)
         return merged
-
+    '''
+    
     # ─── Play ──────────────────────────────────────────────────────────────────
 
     def playRecord(self, records: TimeSeries, startDuration: float = 3.0) -> None:
@@ -95,3 +88,4 @@ class ReachyController:
             executor.submit(self.armRight.playArmRecord,  records, startDuration)
             executor.submit(self.head.playHeadRecord,     records, startDuration)
         cm.MKprint("|--- Stop playing ------|", self.CLASS_NAME, self.CLASS_COLOR)
+    

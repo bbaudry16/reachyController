@@ -178,6 +178,7 @@ class ReachyArm(rp.ReachyPart):
         PARAMETER joint_dict : dict
         RETURN bool
         """
+        return False
         if self._collideWithTable(joint_dict):
             cm.MKprintSafety("Collision with table!", self.CLASS_NAME, self.CLASS_COLOR)
             self.canMove = False
@@ -448,7 +449,7 @@ class ReachyArm(rp.ReachyPart):
             time.sleep(samplingTime)
 
         cm.MKprint(f"Recording done for {self._sided(config.ARM_NAME)}.", self.CLASS_NAME, self.CLASS_COLOR)
-        return TimeSeries(samplingFrequencyHertz, recordDurationSeconds, trajectories)
+        return TimeSeries(samplingFrequencyHertz, recordDurationSeconds, trajectories, [self._armID == config.ARM_RIGHT_ID, self._armID == config.ARM_LEFT_ID, 0])
 
     def playArmRecord(self, record: TimeSeries, startDuration: float = 3.0, collisionCheckInterval: int = 5) -> None:
         """
