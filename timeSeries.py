@@ -263,7 +263,7 @@ class TimeSeries:
     def loadFromCSV(cls,fileName:str)->"TimeSeries":
 
         jointPosition=[]
-        exclude={"frame","timestamp","head_x","head_y","head_z"}
+        exclude={"frame","timestamp"}
         motorLabels=[l for l in cls.jointLabel if l not in exclude]
 
         with open(fileName,newline='') as csvFile:
