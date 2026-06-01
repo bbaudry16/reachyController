@@ -2,20 +2,24 @@ import json
 import matplotlib.pyplot as plt
 import pandas as pd
 from . import config
+from . import consoleManager as cm
 import csv
 import numpy as np
 from .DBA_multivariate import performDBA
 
+CLASS_NAME  : str = "Time serie"
+CLASS_COLOR : str = cm.Color.BRIGHT_GREEN
 
 class TimeSeries:
 
-    rightJoint:list = [config.ARM_RIGHT_ID+x for x in config.ARM_MOTOR_NAME]
-    
-    leftJoint:list = [config.ARM_LEFT_ID + x for x in config.ARM_MOTOR_NAME]
 
-    headJoint:list=["head_x","head_y","head_z"]
-    
-    jointLabel:list=["frame","timestamp"]+rightJoint+leftJoint+headJoint
+    rightJoint:list = [str(config.ARM_RIGHT_ID) + "_" + str(x) for x in config.ARM_MOTOR_NAME]
+
+    leftJoint:list = [str(config.ARM_LEFT_ID) + "_" + str(x) for x in config.ARM_MOTOR_NAME]
+
+    headJoint:list = ["head_x", "head_y", "head_z"]
+
+    jointLabel:list = ["frame", "timestamp"] + rightJoint + leftJoint + headJoint
 
     def __init__(self,samplingFrequency:float,recordDurationSeconds:float,jointPosition:list=None,flags=[True,True,True]):
         self.samplingFrequency=samplingFrequency
@@ -136,6 +140,27 @@ class TimeSeries:
 
         return TimeSeries(self.samplingFrequency,self.recordDuration,frames,self.flags.copy())
 
+    def addWhiteNoise(self, amplitude : 0.1):
+
+        mean = 0
+        new = []
+
+        for frame in self.jointPosition:
+            newFrame = {}
+            
+            size = len(frame)
+            samples = np.random.normal(mean, amplitude, size=size)
+
+            for index, key in enumerate(frame):
+                
+                
+                newFrame[key] = frame[key] + samples[index]
+
+            new.append(newFrame)
+
+        return TimeSeries(self.samplingFrequency, self.recordDuration, new, self.flags)
+
+
     def speed(self,factor:float)->"TimeSeries":
 
         if factor<=0:
@@ -200,7 +225,7 @@ class TimeSeries:
         return {"samplingFrequency":self.samplingFrequency,"recordDuration":self.recordDuration,"jointPosition":self.jointPosition,"flags":self.flags}
 
     def saveToJson(self,fileName:str)->None:
-
+        cm.MKprint("saving time serie as json at : " + fileName, CLASS_NAME, CLASS_COLOR)
         with open(fileName,mode="w") as f:
             json.dump(self.toDict(),f,indent=4)
 
@@ -212,6 +237,8 @@ class TimeSeries:
 
             writer=csv.writer(csvFile,delimiter=',',quotechar='|',quoting=csv.QUOTE_MINIMAL)
             writer.writerow(headers)
+            
+            cm.MKprint("saving time serie as CSV at : " + fileName, CLASS_NAME, CLASS_COLOR)
 
             for i,frame in enumerate(self.jointPosition):
 
@@ -229,6 +256,7 @@ class TimeSeries:
         with open(fileName,mode="r") as f:
             data=json.load(f)
 
+        cm.MKprint("saving time serie as json at : " + fileName, CLASS_NAME, CLASS_COLOR)
         return cls(data["samplingFrequency"],data["recordDuration"],data["jointPosition"],data.get("flags",[True,True,True]))
 
     @classmethod
@@ -257,7 +285,7 @@ class TimeSeries:
                     frame[joint]=float(row[idx])
 
                 jointPosition.append(frame)
-
+        cm.MKprint("loading time serie from csv at : " + fileName, CLASS_NAME, CLASS_COLOR)
         return cls(float(sfIdx),float(rdIdx),jointPosition,[True,True,False])
 
     def plot(self):
@@ -280,17 +308,16 @@ class TimeSeries:
         fig,axs=plt.subplots(3,3,figsize=(15,10))
         axs=axs.flatten()
 
-        subplotMapping=[
-            (2,config.diskMotorName,"Head motors angles"),
-            (5,config.antennaMotorName,"Antenna motors angles"),
-            (0,["r_"+m for m in config.shoulderMotorName],"Right shoulder motors angles"),
-            (3,["r_"+m for m in config.elbowMotorName],"Right elbow motors angles"),
-            (6,["r_"+m for m in config.forearmMotorName],"Right forearm motors angles"),
-            (1,["l_"+m for m in config.shoulderMotorName],"Left shoulder motors angles"),
-            (4,["l_"+m for m in config.elbowMotorName],"Left elbow motors angles"),
-            (7,["l_"+m for m in config.forearmMotorName],"Left forearm motors angles")
+        subplotMapping = [
+            (2, config.DISK_MOTOR_NAME, "Head motors angles"),
+            (5, config.ANTENNA_MOTOR_NAME, "Antenna motors angles"),
+            (0, [str(config.ARM_RIGHT_ID) + "_" + m for m in config.SHOULDER_MOTOR_NAME], "Right shoulder motors angles"),
+            (3, [str(config.ARM_RIGHT_ID) + "_" + m for m in config.ELBOW_MOTOR_NAME], "Right elbow motors angles"),
+            (6, [str(config.ARM_RIGHT_ID) + "_" + m for m in config.FOREARM_MOTOR_NAME], "Right forearm motors angles"),
+            (1, [str(config.ARM_LEFT_ID) + "_" + m for m in config.SHOULDER_MOTOR_NAME], "Left shoulder motors angles"),
+            (4, [str(config.ARM_LEFT_ID) + "_" + m for m in config.ELBOW_MOTOR_NAME], "Left elbow motors angles"),
+            (7, [str(config.ARM_LEFT_ID) + "_" + m for m in config.FOREARM_MOTOR_NAME], "Left forearm motors angles")
         ]
-
         for idx,motors,title in subplotMapping:
 
             ax=axs[idx]

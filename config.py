@@ -7,7 +7,13 @@ FOREARM_MOTOR_NAME  : list = ["wrist_pitch", "wrist_roll", HAND_MOTOR_NAME]
 ARM_MOTOR_NAME      : list = SHOULDER_MOTOR_NAME + ELBOW_MOTOR_NAME + FOREARM_MOTOR_NAME
 
 ANTENNA_MOTOR_NAME  : list = ["l_antenna", "r_antenna"]
-DISK_MOTOR_NAME     : list = ["neck_roll", "neck_pitch", "neck_yaw"]
+DISK_MOTOR_ROLL_NAME : str = "neck_roll"
+DISK_MOTOR_PITCH_NAME : str = "neck_pitch"
+DISK_MOTOR_YAW_NAME : str = "neck_yaw"
+
+DISK_MOTOR_NAME     : list = [DISK_MOTOR_ROLL_NAME, DISK_MOTOR_PITCH_NAME, DISK_MOTOR_YAW_NAME]
+
+
 HEAD_MOTOR_NAME     : list = DISK_MOTOR_NAME + ANTENNA_MOTOR_NAME
 
 # ─── Arm geometry (meters) ─────────────────────────────────────────────────────

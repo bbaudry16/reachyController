@@ -5,7 +5,9 @@ from . import config
 from . import reachyPart as rp
 from . import consoleManager as cm
 from .timeSeries import TimeSeries
-
+from scipy.spatial.transform import Rotation as R
+import numpy as np
+from reachy_sdk import trajectory
 
 class ReachyDisk:
     def __init__(self, maxAngleEuler: float, minAngleEuler: float):
@@ -18,6 +20,8 @@ class ReachyHead(rp.ReachyPart):
     DISK_NECK_ROLL  : ReachyDisk = ReachyDisk(60,  -60)
     DISK_NECK_PITCH : ReachyDisk = ReachyDisk(60,  -60)
     DISK_NECK_YAW   : ReachyDisk = ReachyDisk(360,   0)
+
+    TIME_SERIE_HEAD_VALUES_NAME : list = ["head_x", "head_y", "head_z"]
 
     CLASS_NAME  : str = "Reachy head"
     CLASS_COLOR : str = cm.Color.YELLOW
@@ -39,6 +43,38 @@ class ReachyHead(rp.ReachyPart):
 
     # ─── Record / Play ─────────────────────────────────────────────────────────
 
+    def forwardKinematic(self, distance=1.0) -> list:
+    
+        
+
+        rotation = R.from_euler('xyz', [self._disks[config.DISK_MOTOR_ROLL_NAME].present_position, self._disks[config.DISK_MOTOR_PITCH_NAME].present_position, self._disks[config.DISK_MOTOR_YAW_NAME].present_position], degrees=True)
+        
+        direction = rotation.apply([1.0, 0.0, 0.0])
+        
+        direction = direction / np.linalg.norm(direction)
+        
+        point = distance * direction
+        
+        return list(point)
+
+    def invertKinematic(self, x: float, y: float, z: float) -> list:
+
+        target = np.array([x, y, z], dtype=float)
+
+        norm = np.linalg.norm(target)
+        if norm < 1e-8:
+            return [0.0, 0.0, 0.0]
+
+        direction = target / norm
+
+        # yaw + pitch only (plus stable pour tête robot)
+        yaw = np.arctan2(direction[1], direction[0])
+        pitch = -np.arctan2(direction[2], np.sqrt(direction[0]**2 + direction[1]**2))
+
+        roll = 0.0
+
+        return list(np.rad2deg([roll, pitch, yaw]))
+
     def recordHead(self, recordDurationSeconds: float, samplingFrequencyHertz: float) -> TimeSeries:
         trajectories = []
         samplingTime = 1.0 / samplingFrequencyHertz
@@ -47,26 +83,43 @@ class ReachyHead(rp.ReachyPart):
         cm.MKprint(f"Recording head for {recordDurationSeconds}s at {samplingFrequencyHertz}Hz.", self.CLASS_NAME, self.CLASS_COLOR)
 
         while (time.time() - start) < recordDurationSeconds:
-            trajectories.append({name: joint.present_position for name, joint in self._disks.items()})
+            trajectories.append({name: joint for name, joint in zip(ReachyHead.TIME_SERIE_HEAD_VALUES_NAME, self.forwardKinematic())})
             time.sleep(samplingTime)
 
         cm.MKprint("Recording done for head.", self.CLASS_NAME, self.CLASS_COLOR)
         return TimeSeries(samplingFrequencyHertz, recordDurationSeconds, trajectories, [0, 0, 1])
 
     def playHeadRecord(self, record: TimeSeries, startDuration: float = 3.0) -> None:
-        firstPoint = {
-            self._disks[m]: pos
-            for m, pos in record.jointPosition[0].items()
-            if m in self._disks
-        }
+
+        if not record.jointPosition:
+            return
+
         samplingTime = 1.0 / record.samplingFrequency
 
         cm.MKprint(f"Playing head record at {record.samplingFrequency}Hz.", self.CLASS_NAME, self.CLASS_COLOR)
 
-        trajectory.goto(firstPoint, duration=startDuration)
+        first_frame = record.jointPosition[0]
 
-        for jointsPositions in record.jointPosition:
-            for name, pos in jointsPositions.items():
-                if name in self._disks:
-                    self._disks[name].goal_position = pos
+        first_point = [
+            first_frame[name]
+            for name in ReachyHead.TIME_SERIE_HEAD_VALUES_NAME
+        ]
+        if(startDuration > 0):
+            self._reachyHead.look_at(x=first_point[0], y=first_point[1], z=first_point[2], duration=startDuration)
+
+            time.sleep(startDuration)
+
+        for frame in record.jointPosition:
+
+            point = [
+                frame[name]
+                for name in ReachyHead.TIME_SERIE_HEAD_VALUES_NAME
+            ]
+            
+            roll, pitch, yaw = self.invertKinematic(*point)
+
+            self._disks["neck_pitch"].goal_position = pitch
+            self._disks["neck_yaw"].goal_position = yaw
+            self._disks["neck_roll"].goal_position = roll
+
             time.sleep(samplingTime)
