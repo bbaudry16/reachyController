@@ -21,8 +21,6 @@ class ReachyHead(rp.ReachyPart):
     DISK_NECK_PITCH : ReachyDisk = ReachyDisk(60,  -60)
     DISK_NECK_YAW   : ReachyDisk = ReachyDisk(360,   0)
 
-    TIME_SERIE_HEAD_VALUES_NAME : list = ["head_x", "head_y", "head_z"]
-
     CLASS_NAME  : str = "Reachy head"
     CLASS_COLOR : str = cm.Color.YELLOW
 
@@ -83,7 +81,7 @@ class ReachyHead(rp.ReachyPart):
         cm.MKprint(f"Recording head for {recordDurationSeconds}s at {samplingFrequencyHertz}Hz.", self.CLASS_NAME, self.CLASS_COLOR)
 
         while (time.time() - start) < recordDurationSeconds:
-            trajectories.append({name: joint for name, joint in zip(ReachyHead.TIME_SERIE_HEAD_VALUES_NAME, self.forwardKinematic())})
+            trajectories.append({name: joint for name, joint in zip(config.TIME_SERIE_HEAD_VALUES_NAME, self.forwardKinematic())})
             time.sleep(samplingTime)
 
         cm.MKprint("Recording done for head.", self.CLASS_NAME, self.CLASS_COLOR)
@@ -102,7 +100,7 @@ class ReachyHead(rp.ReachyPart):
 
         first_point = [
             first_frame[name]
-            for name in ReachyHead.TIME_SERIE_HEAD_VALUES_NAME
+            for name in config.TIME_SERIE_HEAD_VALUES_NAME
         ]
         if(startDuration > 0):
             self._reachyHead.look_at(x=first_point[0], y=first_point[1], z=first_point[2], duration=startDuration)
@@ -113,7 +111,7 @@ class ReachyHead(rp.ReachyPart):
 
             point = [
                 frame[name]
-                for name in ReachyHead.TIME_SERIE_HEAD_VALUES_NAME
+                for name in config.TIME_SERIE_HEAD_VALUES_NAME
             ]
             
             roll, pitch, yaw = self.invertKinematic(*point)

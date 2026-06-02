@@ -144,7 +144,6 @@ class TimeSeries:
 
         mean = 0
         new = []
-
         for frame in self.jointPosition:
             newFrame = {}
             
@@ -152,7 +151,6 @@ class TimeSeries:
             samples = np.random.normal(mean, amplitude, size=size)
 
             for index, key in enumerate(frame):
-                
                 
                 newFrame[key] = frame[key] + samples[index]
 
@@ -308,9 +306,10 @@ class TimeSeries:
         fig,axs=plt.subplots(3,3,figsize=(15,10))
         axs=axs.flatten()
 
+
+
         subplotMapping = [
-            (2, config.DISK_MOTOR_NAME, "Head motors angles"),
-            (5, config.ANTENNA_MOTOR_NAME, "Antenna motors angles"),
+            (2, config.TIME_SERIE_HEAD_VALUES_NAME, "Head looking point"),
             (0, [str(config.ARM_RIGHT_ID) + "_" + m for m in config.SHOULDER_MOTOR_NAME], "Right shoulder motors angles"),
             (3, [str(config.ARM_RIGHT_ID) + "_" + m for m in config.ELBOW_MOTOR_NAME], "Right elbow motors angles"),
             (6, [str(config.ARM_RIGHT_ID) + "_" + m for m in config.FOREARM_MOTOR_NAME], "Right forearm motors angles"),
@@ -331,6 +330,23 @@ class TimeSeries:
             ax.grid(True)
 
         axs[8].axis("off")
+        axs[5].axis("off")
+
+        if not self.flags[0]:
+            axs[0].axis("off")
+            axs[3].axis("off")
+            axs[6].axis("off")
+        
+
+        if not self.flags[1]:
+            axs[1].axis("off")
+            axs[4].axis("off")
+            axs[7].axis("off")
+
+
+        if not self.flags[2]:
+            axs[2].axis("off")
+
         plt.tight_layout()
         plt.show()
 
