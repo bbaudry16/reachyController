@@ -42,7 +42,7 @@ class ReachyController:
         time.sleep(0.5)
         for joint in self.reachy.joints.values():
             joint.goal_position = joint.present_position
-    '''
+    
     # ─── Record ────────────────────────────────────────────────────────────────
 
     def record(self, recordDurationSeconds: float, samplingFrequencyHertz: float,
@@ -73,7 +73,7 @@ class ReachyController:
 
         cm.MKprint("|--- Stop recording ----|", self.CLASS_NAME, self.CLASS_COLOR)
         return merged
-    '''
+    
     
     # ─── Play ──────────────────────────────────────────────────────────────────
 
