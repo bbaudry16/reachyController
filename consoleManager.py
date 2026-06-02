@@ -40,4 +40,6 @@ def getHourStr() -> str:
 def coloredStr(string : str, colorID : str) -> str:
     return colorID + string + Color.RESET
 
+
+
 os.system('')

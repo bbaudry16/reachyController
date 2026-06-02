@@ -105,8 +105,6 @@ class ReachyHead(rp.ReachyPart):
         if(startDuration > 0):
             self._reachyHead.look_at(x=first_point[0], y=first_point[1], z=first_point[2], duration=startDuration)
 
-            time.sleep(startDuration)
-
         for frame in record.jointPosition:
 
             point = [
