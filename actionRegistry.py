@@ -5,3 +5,4 @@ def register(name):
         ACTION_REGISTRY[name] = func
         return func
     return decorator
+
