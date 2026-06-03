@@ -58,14 +58,19 @@ class ReachyController:
 
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {}
+            partInvolved = []
+            if recordHead:
+                partInvolved.append("h")
+                futures["h"] = executor.submit(self.head.recordHead,     recordDurationSeconds, samplingFrequencyHertz)
             if recordArmLeft:
+                partInvolved.append("l")
                 futures["l"] = executor.submit(self.armLeft.recordArm,   recordDurationSeconds, samplingFrequencyHertz)
             if recordArmRight:
+                partInvolved.append("r")
                 futures["r"] = executor.submit(self.armRight.recordArm,  recordDurationSeconds, samplingFrequencyHertz)
-            if recordHead:
-                futures["h"] = executor.submit(self.head.recordHead,     recordDurationSeconds, samplingFrequencyHertz)
+            
 
-            results = {k: f.result() for k, f in futures.items()}
+            results = {k: futures[k].result() for k in partInvolved}
 
         merged = None
         for ts in results.values():

@@ -24,6 +24,7 @@ class Color():
     RESET = "\x1b[1;39m"
     SAFETY = RED
     DEBUG = YELLOW
+    WARNING = YELLOW
 
 def MKprint(printStr : str, instrName : str = "default", colorID : "Color" = Color.DEFAULT) -> None:
     print(coloredStr("[" + getHourStr() + " - "+ instrName + "] ", colorID)  + printStr)
@@ -33,6 +34,9 @@ def MKprintSafety(printStr : str, instrName : str = "default", colorID : "Color"
 
 def MKprintDebug(printStr : str, instrName : str = "default", colorID : "Color" = Color.DEFAULT):
     MKprint(Color.DEBUG + "[DEBUG] " + printStr + Color.RESET, instrName, colorID)
+
+def MKprintWarning(printStr : str, instrName : str = "default", colorID : "Color" = Color.DEFAULT):
+    MKprint(Color.WARNING + "[WARNING] " + printStr + Color.RESET, instrName, colorID)
 
 def getHourStr() -> str:
     return time.strftime("%H:%M:%S")

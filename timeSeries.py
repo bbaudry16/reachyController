@@ -284,7 +284,7 @@ class TimeSeries:
 
                 jointPosition.append(frame)
         cm.MKprint("loading time serie from csv at : " + fileName, CLASS_NAME, CLASS_COLOR)
-        return cls(float(sfIdx),float(rdIdx),jointPosition,[True,True,False])
+        return cls(float(sfIdx),float(rdIdx),jointPosition,[True,True,True])
 
     def plot(self):
 
@@ -375,10 +375,17 @@ class TimeSeries:
         if len(seriesList)==1:
             return seriesList[0]
 
-        freqs={ts.samplingFrequency for ts in seriesList}
+        freqs=[ts.samplingFrequency for ts in seriesList]
 
         if len(freqs)>1:
-            raise ValueError("All TimeSeries must share the same samplingFrequency.")
+            ok = True
+            i = 0
+            while(i < len(freqs) - 1 and ok):
+                ok = abs(freqs[i] - freqs[i+1]) < 0.1
+                i += 1
+
+            if(not ok):
+                raise ValueError("All TimeSeries must share the same samplingFrequency.")
 
         sf=seriesList[0].samplingFrequency
         converted=[TimeSeries._toNumpy(ts) for ts in seriesList]
