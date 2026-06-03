@@ -10,7 +10,7 @@ class Color():
     BLUE = "\x1b[1;34m"
     MAGENTA = "\x1b[1;35m"
     CYAN = "\x1b[1;36m"
-    WHITE = "\x1b[1;37m",
+    WHITE = "\x1b[1;37m"
     BRIGHT_RED = "\x1b[1;91m"
     BRIGHT_BLACK = "\x1b[1;90m"
     BRIGHT_GREEN = "\x1b[1;92m"
@@ -27,7 +27,7 @@ class Color():
     WARNING = YELLOW
 
 def MKprint(printStr : str, instrName : str = "default", colorID : "Color" = Color.DEFAULT) -> None:
-    print(coloredStr("[" + getHourStr() + " - "+ instrName + "] ", colorID)  + printStr)
+    print(coloredStr("[" + getHourStr() + " - "+ instrName + "] ", colorID)  + printStr + "\n", end="")
     
 def MKprintSafety(printStr : str, instrName : str = "default", colorID : "Color" = Color.DEFAULT):
     MKprint(Color.SAFETY + "[SAFETY] " + printStr + Color.RESET, instrName, colorID)
@@ -43,6 +43,18 @@ def getHourStr() -> str:
 
 def coloredStr(string : str, colorID : str) -> str:
     return colorID + string + Color.RESET
+
+def testCouleur():
+      for name, value in Color.__dict__.items():
+        if name.startswith("__"):
+                continue
+        if callable(value):
+                continue
+
+        try:
+                MKprint(name + " = TEST", name, value)
+        except Exception:
+                pass
 
 
 

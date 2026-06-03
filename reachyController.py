@@ -14,7 +14,7 @@ from . import config
 class ReachyController:
 
     CLASS_NAME  : str = "Reachy controller"
-    CLASS_COLOR : str = cm.Color.BRIGHT_RED
+    CLASS_COLOR : str = cm.Color.MAGENTA
 
     def __init__(self, reachy: ReachySDK):
         self.reachy = reachy

@@ -1,17 +1,18 @@
-from .actionRegistry import register
+from .actionRegistry import register_action, register_control_action
 from .instructor import Validator, Executor
 from concurrent.futures import ThreadPoolExecutor
+from .timeSeries import TimeSeries
 
-@register("reachy_on")
+@register_action("reachy_on")
 def reachy_on(executor : "Executor"):
     executor.reachy.turnOn()
 
 
-@register("reachy_off")
+@register_action("reachy_off")
 def reachy_off(executor : "Executor"):
     executor.reachy.turnOffSmooth()
 
-@register("look_at")
+@register_action("look_at")
 def look_at(executor : "Executor", params):
     if not Validator(params, "look_at").require("target").validate():
         return
@@ -19,7 +20,7 @@ def look_at(executor : "Executor", params):
     target = params["target"]
     executor.reachy.head.lookAt(target, 5)
 
-@register("move_hand")
+@register_action("move_hand")
 def move_hand(executor : "Executor", params : dict):
     if not Validator(params, "move_hand").require("arm").require("position").require("orientation").validate():
         return
@@ -46,7 +47,7 @@ def move_hand(executor : "Executor", params : dict):
         else:
             reachyArm.gotoCartesianPoint(position, orientation, duration=duration, interpolation=interpolation)
 
-@register("place_hand_on_table")
+@register_action("place_hand_on_table")
 def place_hand_on_table(executor : "Executor", params : dict):
     if not Validator(params, "place_hand_on_table").require("arm").validate():
         return
@@ -64,7 +65,7 @@ def place_hand_on_table(executor : "Executor", params : dict):
     else:
         reachyArm._debug_placeHandOnTable()
 
-@register("parallel")
+@register_control_action("parallel")
 def parallel(executor: "Executor", params: list):
     if not Validator(params, "parallel").isAList().validate():
         return
@@ -76,7 +77,7 @@ def parallel(executor: "Executor", params: list):
             future.result()
 
 
-@register("do")
+@register_control_action("do")
 def do(executor: "Executor", params: dict):
     if not Validator(params, "do").require("times").require("actions").validate():
         return
@@ -92,3 +93,72 @@ def do(executor: "Executor", params: dict):
             executor.executeInstruction(action)
 
 
+@register_control_action("capture")
+def capture(executor : "Executor", params : dict):
+    if not Validator(params, "capture").require("as").require("action").validate():
+        return
+    
+
+    varName : str = params.get("as")
+    action = params.get("action")
+
+    executor.variable[varName] = executor.executeInstruction(action)
+
+@register_action("record_all")
+def record_all(executor : "Executor", params : dict):
+    if not Validator(params, "record_all").require("duration").require("fps").validate():
+        return
+    
+    duration = params.get("duration")
+    frequency = params.get("fps")
+
+    head = params.get("head", True)
+    arm_right = params.get("arm_right", True)
+    arm_left = params.get("arm_left", True)
+
+    return executor.reachy.record(duration, frequency, arm_left, arm_right, head)
+
+@register_action("record_head")
+def record_head(executor : "Executor", params : dict):
+    if not Validator(params, "record_head").require("duration").require("fps").validate():
+        return
+    
+    duration = params.get("duration")
+    frequency = params.get("fps")
+
+    return executor.reachy.head.recordHead(duration, frequency)
+
+@register_action("record_arm")
+def record_arm(executor : "Executor", params : dict):
+    if not Validator(params, "record_arm").require("arm").require("duration").require("fps").validate():
+        return
+    
+    duration = params.get("duration")
+    frequency = params.get("fps")
+    arm = params.get("arm")
+
+    reachyArm = executor.reachy.armRight
+
+    if(arm == "left"):
+        reachyArm = executor.reachy.armLeft
+
+    return reachyArm.recordArm(duration, frequency)
+
+@register_action("save_record_as_CSV")
+def save_record_as_CSV(executor : "Executor", params : dict):
+    if not Validator(params, "save_record_as_CSV").require("file_name").require("record").validate():
+        return
+    
+    fileName = params.get("file_name")
+    record = params.get("record")
+
+    record.saveToCSV(fileName)
+
+@register_action("load_record_from_CSV")
+def load_record_from_CSV(executor : "Executor", params : dict):
+    if not Validator(params, "load_record_from_CSV").require("file_name").validate():
+        return
+    
+    fileName = params.get("file_name")
+
+    return TimeSeries.loadFromCSV(fileName)

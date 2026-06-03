@@ -22,7 +22,7 @@ class ReachyHead(rp.ReachyPart):
     DISK_NECK_YAW   : ReachyDisk = ReachyDisk(360,   0)
 
     CLASS_NAME  : str = "Reachy head"
-    CLASS_COLOR : str = cm.Color.YELLOW
+    CLASS_COLOR : str = cm.Color.BRIGHT_BLUE
 
     def __init__(self, reachy: ReachySDK):
         self._reachyHead = reachy.head

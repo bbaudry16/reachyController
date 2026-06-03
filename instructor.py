@@ -1,10 +1,10 @@
 import yaml as yml
 from . import consoleManager as cm
 from . import reachyController
-from .actionRegistry import ACTION_REGISTRY 
+from .actionRegistry import ACTION_REGISTRY, CONTROL_ACTIONS
         
 SCRIPT_NAME : str = "Instructor"
-SCRIPT_COLOR : str = cm.Color.BRIGHT_MAGENTA
+SCRIPT_COLOR : str = cm.Color.BLUE
 
 class Instructor:
 
@@ -40,12 +40,36 @@ class Executor:
     def executeInstruction(self, instruction):
 
         if isinstance(instruction, str):
-            self.execute(instruction)
+            return self.execute(instruction)
 
         elif isinstance(instruction, dict):
             name = next(iter(instruction))
             params = instruction[name]
-            self.execute(name, params)
+
+            if name not in CONTROL_ACTIONS:
+                params = self.resolveVariables(params)
+            return self.execute(name, params)
+        
+    def resolveVariables(self, value):
+
+        if isinstance(value, str) and value.startswith("$"):
+            variableName = value[1:]
+
+            if variableName not in self.variable:
+                raise Exception(f"Unknown variable '{variableName}'")
+
+            return self.variable[variableName]
+
+        if isinstance(value, list):
+            return [self.resolveVariables(v) for v in value]
+
+        if isinstance(value, dict):
+            return {
+                k: self.resolveVariables(v)
+                for k, v in value.items()
+            }
+
+        return value
 
     def execute(self, name : str, params=None):
         
@@ -53,7 +77,7 @@ class Executor:
         if handler == None:
             cm.MKprintWarning("unknown action : " + name, SCRIPT_NAME, SCRIPT_COLOR)
             return None
-
+        
         if params is None:
             try:
                 return handler(self)
