@@ -11,7 +11,6 @@ class Instructor:
 
     def __init__(self, data : dict, reachyController : "reachyController.ReachyController"):
         self.data = data
-        print(data)
         self.executor = Executor(reachyController)
 
     def execute(self):
@@ -22,9 +21,16 @@ class Instructor:
     def loadFromPath(self, path : str, reachyController : "reachyController.ReachyController") -> "Instructor":
         try :
             stream = open(path, 'r')
-            load = yml.load(stream)
-            cm.MKprint("successfully loaded : " + path, SCRIPT_NAME, SCRIPT_COLOR)
-            return Instructor(load, reachyController) 
+            load = yml.safe_load(stream)
+            if not isinstance(load, list) and Validator(load).require("format").require("reachy").validate() and load.get("format") == "reachy_instruction" and isinstance(load.get("reachy"), list):
+                cm.MKprint("successfully loaded reachy instruction format (ryi) : " + path, SCRIPT_NAME, SCRIPT_COLOR)
+                return Instructor(load.get("reachy"), reachyController)
+            else:
+                try:
+                    cm.MKprint("successfully loaded yml instruction format : " + path, SCRIPT_NAME, SCRIPT_COLOR)
+                    return Instructor(load, reachyController)
+                except:
+                    raise("invalid file format, check if it's a yml or a ryi, check if the file format is correct")
 
         except Exception as e:
             cm.MKprintWarning("Failed to load : " + path + " , returning Parser({}) with error : " + str(e), SCRIPT_NAME, SCRIPT_COLOR)

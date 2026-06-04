@@ -281,7 +281,10 @@ class ReachyArm(rp.ReachyPart):
         PARAMETER duration : float
         RETURN None
         """
-        self.changeHandAngle(self.JOINT_GRIPPER.minAngle, duration)
+        if self._armID == config.ARM_RIGHT_ID:
+            self.changeHandAngle(self.JOINT_GRIPPER.minAngle, duration)
+        else:
+            self.changeHandAngle(self.JOINT_GRIPPER.maxAngle, duration)
         return None
 
     def closeHand(self, duration: float = 0.5) -> None:
@@ -290,7 +293,10 @@ class ReachyArm(rp.ReachyPart):
         PARAMETER duration : float
         RETURN None
         """
-        self.changeHandAngle(self.JOINT_GRIPPER.maxAngle, duration)
+        if self._armID == config.ARM_RIGHT_ID:
+            self.changeHandAngle(self.JOINT_GRIPPER.maxAngle, duration)
+        else:
+            self.changeHandAngle(self.JOINT_GRIPPER.minAngle, duration)
         return None
 
     # ─── Kinematics ────────────────────────────────────────────────────────────
