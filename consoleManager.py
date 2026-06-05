@@ -27,7 +27,7 @@ class Color():
     WARNING = YELLOW
 
 intentation : int = 0
-INTENTATION_STR : str = "     "
+INTENTATION_STR : str = "   "
 INTENTATION_INDICATOR : str = "⌞"
 
 def addIntentation(n : int = 1):
