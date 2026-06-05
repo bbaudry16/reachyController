@@ -26,8 +26,31 @@ class Color():
     DEBUG = YELLOW
     WARNING = YELLOW
 
+intentation : int = 0
+INTENTATION_STR : str = "     "
+INTENTATION_INDICATOR : str = "⌞"
+
+def addIntentation(n : int = 1):
+    global intentation
+    if n < 0:
+        return
+    intentation += n
+
+def removeIntentation(n : int = 1):
+    global intentation
+    intentation -= n
+    intentation = max(0, intentation)
+
 def MKprint(printStr : str, instrName : str = "default", colorID : "Color" = Color.DEFAULT) -> None:
-    print(coloredStr("[" + getHourStr() + " - "+ instrName + "] ", colorID)  + printStr + "\n", end="")
+    global intentation
+    name : str = " " * max(0, (17 - len(instrName)))
+    name += instrName
+    name = name[:17]
+    if intentation == 0:
+        print(coloredStr("[" + getHourStr() + " - "+ name + "] ", colorID)  + printStr + "\n", end="")
+    else:
+        currentIntentation = INTENTATION_STR * intentation + INTENTATION_INDICATOR + " "
+        print(coloredStr("[" + getHourStr() + " - "+ name + "] ", colorID) + currentIntentation + printStr + "\n", end="")
     
 def MKprintSafety(printStr : str, instrName : str = "default", colorID : "Color" = Color.DEFAULT):
     MKprint(Color.SAFETY + "[SAFETY] " + printStr + Color.RESET, instrName, colorID)

@@ -54,7 +54,8 @@ class ReachyController:
         if not (recordArmLeft or recordArmRight or recordHead):
             raise ValueError("At least one part must be recorded.")
 
-        cm.MKprint("|--- Start recording ---|", self.CLASS_NAME, self.CLASS_COLOR)
+        cm.MKprint("start recording ┐", self.CLASS_NAME, self.CLASS_COLOR)
+        cm.addIntentation()
 
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {}
@@ -76,7 +77,9 @@ class ReachyController:
         for ts in results.values():
             merged = ts if merged is None else merged + ts
 
-        cm.MKprint("|--- Stop recording ----|", self.CLASS_NAME, self.CLASS_COLOR)
+        cm.removeIntentation()
+        cm.MKprint("stop recording ┘", self.CLASS_NAME, self.CLASS_COLOR)
+        
         return merged
     
     
@@ -87,10 +90,13 @@ class ReachyController:
         Play a TimeSeries record on all parts in parallel.
         PARAMETER records TYPE TimeSeries, startDuration TYPE float
         """
-        cm.MKprint("|--- Start playing -----|", self.CLASS_NAME, self.CLASS_COLOR)
+        cm.MKprint("start playing ┐", self.CLASS_NAME, self.CLASS_COLOR)
+        cm.addIntentation()
         with ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(self.armLeft.playArmRecord,   records, startDuration)
             executor.submit(self.armRight.playArmRecord,  records, startDuration)
             executor.submit(self.head.playHeadRecord,     records, startDuration)
-        cm.MKprint("|--- Stop playing ------|", self.CLASS_NAME, self.CLASS_COLOR)
+        cm.removeIntentation()
+        cm.MKprint("stop playing ┘", self.CLASS_NAME, self.CLASS_COLOR)
+        
     

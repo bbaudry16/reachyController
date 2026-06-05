@@ -16,8 +16,13 @@ class Instructor:
         self.executor = Executor(reachyController)
 
     def execute(self):
+        cm.MKprint("executing instruction ┐", SCRIPT_NAME, SCRIPT_COLOR)
+        cm.addIntentation()
         for instruction in self.data:
             self.executor.executeInstruction(instruction)
+        cm.removeIntentation()
+        cm.MKprint("done executing ┘", SCRIPT_NAME, SCRIPT_COLOR)
+        
     
     @classmethod
     def loadFromPath(self, path : str, reachyController : "reachyController.ReachyController") -> "Instructor":

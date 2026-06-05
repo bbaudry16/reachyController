@@ -295,6 +295,7 @@ class ReachyArm(rp.ReachyPart):
         PARAMETER duration : float
         RETURN None
         """
+        cm.MKprint("opening hand in " + str(duration) + "s", self.CLASS_NAME, self.CLASS_COLOR)
         if self._armID == config.ARM_RIGHT_ID:
             self.changeHandAngle(self.JOINT_GRIPPER.minAngle, duration)
         else:
@@ -307,6 +308,7 @@ class ReachyArm(rp.ReachyPart):
         PARAMETER duration : float
         RETURN None
         """
+        cm.MKprint("closing hand in " + str(duration) + "s", self.CLASS_NAME, self.CLASS_COLOR)
         if self._armID == config.ARM_RIGHT_ID:
             self.changeHandAngle(self.JOINT_GRIPPER.maxAngle, duration)
         else:

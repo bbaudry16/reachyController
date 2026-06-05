@@ -44,6 +44,7 @@ class ReachyHead(rp.ReachyPart):
     # ─── Motion ────────────────────────────────────────────────────────────────
 
     def lookAt(self, degAngles: list, duration: float = 1) -> None:
+        cm.MKprint(f"Looking at {degAngles} in {duration}s", self.CLASS_NAME, self.CLASS_COLOR)
         self._reachyHead.look_at(x=degAngles[0], y=degAngles[1], z=degAngles[2], duration=duration)
 
     # ─── Record / Play ─────────────────────────────────────────────────────────
