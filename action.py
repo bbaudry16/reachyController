@@ -436,3 +436,31 @@ def break_action(executor):
 @register_control_action("continue")
 def continue_action(executor):
     raise ContinueLoop()
+
+@register_action("enable_table_collision")
+def enable_table_collision(executor:"Executor", params:dict):
+    if not Validator(params, "enable_table_collision").require("arm").validate():
+        return
+    
+    arm = params.get("arm")
+
+    reachyArm = executor.reachy.armRight
+
+    if arm == "left":
+        reachyArm = executor.reachy.armLeft
+    
+    reachyArm.activateCollisionWithTable()
+
+@register_action("disable_table_collision")
+def disable_table_collision(executor:"Executor", params:dict):
+    if not Validator(params, "disable_table_collision").require("arm").validate():
+        return
+    
+    arm = params.get("arm")
+
+    reachyArm = executor.reachy.armRight
+
+    if arm == "left":
+        reachyArm = executor.reachy.armLeft
+    
+    reachyArm.desactivateCollisionWithTable()

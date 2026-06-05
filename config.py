@@ -35,7 +35,7 @@ TABLE_Z_COORD            : float = -0.4
 # radius prevents false positives on the right arm whose FK segment crosses
 # close to the torso axis in safe poses.
 TORSO_SIZE               : float = 0.40
-TORSO_COLLISION_RADIUS   : float = 0.03
+TORSO_COLLISION_RADIUS   : float = 0.09
 
 SAFE_GOTO_STEPS : int = 5
 

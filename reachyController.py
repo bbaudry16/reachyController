@@ -19,6 +19,8 @@ class ReachyController:
     def __init__(self, reachy: ReachySDK):
         self.reachy = reachy
 
+        cm.MKprint("setup, ignore any collision warning except if it's not set at the end of this intentation ┐", self.CLASS_NAME, self.CLASS_COLOR)
+        cm.addIntentation()
         self.armLeft  = ac.ReachyArm(self.reachy, config.ARM_LEFT_ID)
         self.armRight = ac.ReachyArm(self.reachy, config.ARM_RIGHT_ID)
         self.head     = hc.ReachyHead(self.reachy)
@@ -27,8 +29,8 @@ class ReachyController:
         self.collision = col.CollisionManager(self.armRight, self.armLeft, self.torso)
         self.armLeft.setCollisionManager(self.collision)
         self.armRight.setCollisionManager(self.collision)
-
-    # ─── Power ─────────────────────────────────────────────────────────────────
+        cm.removeIntentation()
+        cm.MKprint("all setup correctly ┘", self.CLASS_NAME, self.CLASS_COLOR)
 
     def turnOn(self) -> None:
         self.reachy.turn_on("reachy")
@@ -43,7 +45,6 @@ class ReachyController:
         for joint in self.reachy.joints.values():
             joint.goal_position = joint.present_position
     
-    # ─── Record ────────────────────────────────────────────────────────────────
 
     def record(self, recordDurationSeconds: float, samplingFrequencyHertz: float,
                recordArmLeft: bool = True, recordArmRight: bool = True, recordHead: bool = True) -> TimeSeries:
