@@ -14,7 +14,6 @@ TIME_SERIE_HEAD_VALUES_NAME : list = ["head_x", "head_y", "head_z"]
 
 DISK_MOTOR_NAME     : list = [DISK_MOTOR_ROLL_NAME, DISK_MOTOR_PITCH_NAME, DISK_MOTOR_YAW_NAME]
 
-
 HEAD_MOTOR_NAME     : list = DISK_MOTOR_NAME + ANTENNA_MOTOR_NAME
 
 # ─── Arm geometry (meters) ─────────────────────────────────────────────────────
@@ -25,17 +24,34 @@ ELBOW_TO_WRIST     : float = 0.25
 
 # ─── Collision ─────────────────────────────────────────────────────────────────
 
-CAPSULE_COLLISION_RADIUS : float = 0.04
+CAPSULE_COLLISION_RADIUS : float = 0.02
 
-TABLE_Z_COORD            : float = -0.4
+# ── Table ──────────────────────────────────────────────────────────────────────
+#
+# La table est maintenant décrite comme une boîte AABB via TableCollider.
+# Ces valeurs par défaut correspondent à un robot assis face à une table
+# standard de 75 cm de hauteur, bord avant à 15 cm du torse.
+#
+# Repère Reachy :  X = avant,  Y = gauche,  Z = haut
+# Origine         = centre torse, hauteur épaules (~115 cm du sol)
+# Surface table   ≈ sol + 75 cm  →  115 - 75 = 40 cm sous les épaules → z = -0.40
+#
+# Ajuste ces valeurs selon la configuration physique réelle du robot.
 
-# Torso capsule : origin [0,0,0] (shoulder height) to [0,0,-TORSO_SIZE].
-# TORSO_COLLISION_RADIUS is kept small (0.03m) because the midpoint heuristic
-# used for the forearm capsule is geometrically approximate — a conservative
-# radius prevents false positives on the right arm whose FK segment crosses
-# close to the torso axis in safe poses.
-TORSO_SIZE               : float = 0.40
-TORSO_COLLISION_RADIUS   : float = 0.09
+TABLE_X_MIN : float =  0.10   # bord avant (côté robot) en m
+TABLE_X_MAX : float =  0.80   # bord arrière de la table
+TABLE_Y_MIN : float = -0.50   # bord gauche
+TABLE_Y_MAX : float =  0.50   # bord droit
+TABLE_Z_MIN : float = -0.50   # dessous de la table (châssis)
+TABLE_Z_MAX : float = -0.40   # dessus / surface de la table
+
+# Ancien TABLE_Z_COORD gardé pour compatibilité ascendante (non utilisé par armController)
+TABLE_Z_COORD : float = TABLE_Z_MAX
+
+# ── Torso ──────────────────────────────────────────────────────────────────────
+
+TORSO_SIZE             : float = 0.40
+TORSO_COLLISION_RADIUS : float = 0.12
 
 SAFE_GOTO_STEPS : int = 5
 

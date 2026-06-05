@@ -9,6 +9,7 @@ from . import reachyPart as rp
 from . import consoleManager as cm
 from .timeSeries import TimeSeries
 from .capsuleCollider import CapsuleCollider
+from .tableCollider import TableCollider
 
 
 # ─── DH-like kinematic chain (right arm, from the official docs) ───────────────
@@ -155,13 +156,46 @@ class ReachyArm(rp.ReachyPart):
         # depuis l'autre bras lors d'un mouvement parallel.
         self._pendingJointDict : dict | None = None
 
+        # Table de travail (AABB). Initialisée depuis config par défaut,
+        # remplaçable dynamiquement via setTable().
+        self._tableCollider : TableCollider | None = None
+        if self.collisionWithTableOn:
+            self._tableCollider = TableCollider(
+                config.TABLE_X_MIN, config.TABLE_X_MAX,
+                config.TABLE_Y_MIN, config.TABLE_Y_MAX,
+                config.TABLE_Z_MIN, config.TABLE_Z_MAX,
+            )
+
     # ─── Setup ─────────────────────────────────────────────────────────────────
 
-    def activateCollisionWithTable(self):
+    def activateCollisionWithTable(self, table: "TableCollider | None" = None) -> None:
+        """
+        Active la collision avec la table.
+        Si table est fournie, elle remplace la table courante.
+        Sinon, crée une TableCollider depuis les valeurs de config (par défaut).
+        """
         self.collisionWithTableOn = True
+        if table is not None:
+            self._tableCollider = table
+        elif self._tableCollider is None:
+            self._tableCollider = TableCollider(
+                config.TABLE_X_MIN, config.TABLE_X_MAX,
+                config.TABLE_Y_MIN, config.TABLE_Y_MAX,
+                config.TABLE_Z_MIN, config.TABLE_Z_MAX,
+            )
 
-    def desactivateCollisionWithTable(self):
+    def desactivateCollisionWithTable(self) -> None:
         self.collisionWithTableOn = False
+
+    def setTable(self, table: "TableCollider") -> None:
+        """
+        Remplace la table courante sans changer l'état actif/inactif.
+        Utile pour mettre à jour la position de la table en cours de session.
+        """
+        self._tableCollider = table
+
+    def getTable(self) -> "TableCollider | None":
+        return self._tableCollider
 
     def _setupConstraints(self) -> None:
         if self._armID == config.ARM_LEFT_ID:
@@ -269,10 +303,16 @@ class ReachyArm(rp.ReachyPart):
     # ─── Collision checks ──────────────────────────────────────────────────────
 
     def _collideWithTable(self, joint_dict: dict) -> bool:
+        """
+        Vérifie si un point clé du bras entre dans le volume AABB de la table.
+        Points testés : coude (4), poignet (6), wrist_roll (7), tip (8).
+        Le coude est inclus pour détecter les plongées brutales.
+        """
+        if self._tableCollider is None:
+            return False
         positions = self.computeFKFromJointDict(joint_dict)
-        # Check wrist and end-effector against table plane
-        for pt in positions[6:]:   # wrist, wrist_roll, gripper
-            if pt[2] <= config.TABLE_Z_COORD:
+        for pt in positions[4:]:   # elbow, forearm_yaw, wrist, wrist_roll, tip
+            if self._tableCollider.containsPoint(pt):
                 return True
         return False
 

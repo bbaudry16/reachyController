@@ -464,3 +464,71 @@ def disable_table_collision(executor:"Executor", params:dict):
         reachyArm = executor.reachy.armLeft
     
     reachyArm.desactivateCollisionWithTable()
+@register_action("set_table")
+def set_table(executor: "Executor", params: dict):
+    """
+    Définit (ou met à jour) la table de travail comme une boîte AABB.
+    Paramètres obligatoires :
+        x_min, x_max : profondeur (avant du robot = X positif)
+        y_min, y_max : largeur
+        z_min, z_max : hauteur (z_max = surface de la table)
+    Paramètre optionnel :
+        arm : "right" | "left" | "both" (défaut : "both")
+    """
+    v = Validator(params, "set_table")
+    if not v.require("x_min").require("x_max").require("y_min").require("y_max").require("z_min").require("z_max").validate():
+        return
+
+    from .tableCollider import TableCollider
+    try:
+        table = TableCollider(
+            params["x_min"], params["x_max"],
+            params["y_min"], params["y_max"],
+            params["z_min"], params["z_max"],
+        )
+    except ValueError as e:
+        from . import consoleManager as cm
+        cm.MKprintWarning(str(e), "set_table")
+        return
+
+    arm = params.get("arm", "both")
+    if arm in ("right", "both"):
+        executor.reachy.armRight.setTable(table)
+    if arm in ("left", "both"):
+        executor.reachy.armLeft.setTable(table)
+
+
+@register_action("set_table_from_surface")
+def set_table_from_surface(executor: "Executor", params: dict):
+    """
+    Raccourci : définit la table par sa surface (z_surface) et son épaisseur.
+    Paramètres obligatoires :
+        x_min, x_max, y_min, y_max : empreinte au sol
+        z_surface                  : hauteur de la surface (dessus de la table)
+    Paramètre optionnel :
+        thickness : épaisseur du plateau en m (défaut : 0.10)
+        arm       : "right" | "left" | "both" (défaut : "both")
+    """
+    v = Validator(params, "set_table_from_surface")
+    if not v.require("x_min").require("x_max").require("y_min").require("y_max").require("z_surface").validate():
+        return
+
+    from .tableCollider import TableCollider
+    thickness = params.get("thickness", 0.10)
+    try:
+        table = TableCollider.fromSurface(
+            params["x_min"], params["x_max"],
+            params["y_min"], params["y_max"],
+            params["z_surface"],
+            thickness,
+        )
+    except ValueError as e:
+        from . import consoleManager as cm
+        cm.MKprintWarning(str(e), "set_table_from_surface")
+        return
+
+    arm = params.get("arm", "both")
+    if arm in ("right", "both"):
+        executor.reachy.armRight.setTable(table)
+    if arm in ("left", "both"):
+        executor.reachy.armLeft.setTable(table)
