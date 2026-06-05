@@ -85,6 +85,13 @@ class ReachyArm(rp.ReachyPart):
             r[sided] = getattr(self._reachyArm, sided)
         return r
 
+    def getJointsInOrder(self) -> list:
+        r = []
+        for name in config.ARM_MOTOR_NAME:
+            sided = self._sided(name)
+            r.append(self._joints[sided])
+        return r
+
     def _setupJointConstraints(self) -> dict:
         """
         setup all joint constraints in __init__
@@ -190,6 +197,13 @@ class ReachyArm(rp.ReachyPart):
         return False
 
     # ─── Motion ────────────────────────────────────────────────────────────────
+
+    def getInterpoaltionByName(self, name : str) -> "trajectory.interpolation":
+        return getattr(trajectory.interpolation, name)
+
+    def safeGoto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear, steps: int = config.SAFE_GOTO_STEPS) -> None:
+        cm.MKprint("going safely in " + str(duration) + "s at pose : " + str(joint_dict) + ", using " + str(steps) + " collision check", self.CLASS_NAME, self.CLASS_COLOR)
+        self._safeGoto(joint_dict, duration, interpolation, steps)
 
     def _safeGoto(self, joint_dict: dict, duration: float, interpolation=trajectory.interpolation.linear, steps: int = config.SAFE_GOTO_STEPS) -> None:
         """

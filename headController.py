@@ -34,6 +34,13 @@ class ReachyHead(rp.ReachyPart):
             r[name] = getattr(self._reachyHead, name)
         return r
 
+    def getDisksInOrder(self) -> list:
+        r = []
+        for name in config.HEAD_MOTOR_NAME:
+            r.append(self._disks[name])
+        
+        return r
+
     # ─── Motion ────────────────────────────────────────────────────────────────
 
     def lookAt(self, degAngles: list, duration: float = 1) -> None:
@@ -43,8 +50,6 @@ class ReachyHead(rp.ReachyPart):
 
     def forwardKinematic(self, distance=1.0) -> list:
     
-        
-
         rotation = R.from_euler('xyz', [self._disks[config.DISK_MOTOR_ROLL_NAME].present_position, self._disks[config.DISK_MOTOR_PITCH_NAME].present_position, self._disks[config.DISK_MOTOR_YAW_NAME].present_position], degrees=True)
         
         direction = rotation.apply([1.0, 0.0, 0.0])
