@@ -17,7 +17,7 @@ class ReachyController:
     CLASS_COLOR : str = cm.Color.MAGENTA
 
     @classmethod
-    def instanciate(ip : str = "localhost"):
+    def instanciate(self, ip : str = "localhost"):
         reachy  = ReachySDK(host=ip)
         return ReachyController(reachy)
 
