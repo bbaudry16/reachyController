@@ -1,6 +1,6 @@
 import time, os
 
-#code from Yoshman29's console manager : https://github.com/YoshiCrafter29
+#code inspire by Yoshman29's console manager : https://github.com/YoshiCrafter29
 
 class Color():
     RED = "\x1b[1;31m"
@@ -26,6 +26,10 @@ class Color():
     DEBUG = YELLOW
     WARNING = YELLOW
 
+#script name level
+MAX_SCRIPT_NAME_CHAR : int = 17
+
+#intentation
 intentation : int = 0
 INTENTATION_STR : str = "   "
 INTENTATION_INDICATOR : str = "⌞"
@@ -43,9 +47,12 @@ def removeIntentation(n : int = 1):
 
 def MKprint(printStr : str, instrName : str = "default", colorID : "Color" = Color.DEFAULT) -> None:
     global intentation
-    name : str = " " * max(0, (17 - len(instrName)))
+    #keep script name at same level
+    name : str = " " * max(0, (MAX_SCRIPT_NAME_CHAR - len(instrName)))
     name += instrName
-    name = name[:17]
+    name = name[:MAX_SCRIPT_NAME_CHAR]
+
+    #add intentation
     if intentation == 0:
         print(coloredStr("[" + getHourStr() + " - "+ name + "] ", colorID)  + printStr + "\n", end="")
     else:
@@ -67,7 +74,7 @@ def getHourStr() -> str:
 def coloredStr(string : str, colorID : str) -> str:
     return colorID + string + Color.RESET
 
-def testCouleur():
+def testCoulor():
       for name, value in Color.__dict__.items():
         if name.startswith("__"):
                 continue

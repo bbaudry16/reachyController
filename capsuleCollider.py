@@ -57,8 +57,6 @@ class CapsuleCollider:
         return np.linalg.norm(p - q)
 
     def intersects(self, other: "CapsuleCollider") -> bool:
-        distance = self.segmentSegmentDistance(
-            self.pointA, self.pointB,
-            other.pointA, other.pointB
-        )
+        distance = self.segmentSegmentDistance(self.pointA, self.pointB, other.pointA, other.pointB)
+        
         return distance <= (self.radius + other.radius)
