@@ -125,3 +125,40 @@ class ReachyHead(rp.ReachyPart):
             self._disks["neck_roll"].goal_position = roll
 
             time.sleep(samplingTime)
+    
+    def setAntenna(self, antenna: str, angle: float, duration: float = 0.5) -> None:
+        """
+        Move one antenna to a given angle.
+        antenna : "left" or "right"
+        angle   : degrees. 0=neutral, positive=up, negative=down/forward
+        duration: seconds between each step for vibration sequences
+        """
+        motor_name = "l_antenna" if antenna == "left" else "r_antenna"
+        motor = self._disks.get(motor_name)
+        if motor is None:
+            cm.MKprintWarning(f"Antenna {antenna} not found.", self.CLASS_NAME, self.CLASS_COLOR)
+            return
+        cm.MKprint(f"Antenna {antenna} → {angle}° in {duration}s", self.CLASS_NAME, self.CLASS_COLOR)
+        motor.goal_position = angle
+        time.sleep(duration)
+
+    def vibrateAntenna(self, antenna: str, amplitude: float = 15.0,
+                    cycles: int = 3, speed: float = 0.08) -> None:
+        """
+        Vibrate one antenna back and forth.
+        amplitude : degrees of oscillation
+        cycles    : number of back-and-forth
+        speed     : seconds per half-cycle (lower = faster vibration)
+        """
+        motor_name = "l_antenna" if antenna == "left" else "r_antenna"
+        motor = self._disks.get(motor_name)
+        if motor is None:
+            return
+        base = motor.present_position
+        cm.MKprint(f"Vibrating antenna {antenna} x{cycles}", self.CLASS_NAME, self.CLASS_COLOR)
+        for _ in range(cycles):
+            motor.goal_position = base + amplitude
+            time.sleep(speed)
+            motor.goal_position = base - amplitude
+            time.sleep(speed)
+        motor.goal_position = base

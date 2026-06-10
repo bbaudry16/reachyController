@@ -25,7 +25,11 @@ def look_at(executor : "Executor", params):
         return
         
     target = params["target"]
-    executor.reachy.head.lookAt(target, 5)
+    duration = params.get("duration")
+    if duration is None:
+        executor.reachy.head.lookAt(target)
+    else :
+        executor.reachy.head.lookAt(target, duration=duration)
 
 @register_action("move_hand")
 def move_hand(executor : "Executor", params : dict):
@@ -532,3 +536,45 @@ def set_table_from_surface(executor: "Executor", params: dict):
         executor.reachy.armRight.setTable(table)
     if arm in ("left", "both"):
         executor.reachy.armLeft.setTable(table)
+
+@register_action("move_hand_sequence")
+def move_hand_sequence(executor, params):
+    if not Validator(params, "move_hand_sequence").require("arm").require("positions").require("duration").validate():
+        return
+    
+    arm = params["arm"]
+    positions = params["positions"]
+    total_duration = params["duration"]
+    step_duration = params.get("step_duration", 0.5)
+    orientation = params.get("orientation", [0, 0, 0])
+
+    reachyArm = executor.reachy.armRight
+    if arm == "left":
+        reachyArm = executor.reachy.armLeft
+
+    start = time.time()
+    i = 0
+    while (time.time() - start) < total_duration:
+        pos = positions[i % len(positions)]
+        reachyArm.gotoCartesianPoint(pos, orientation, duration=step_duration)
+        time.sleep(step_duration)
+        i += 1
+
+@register_action("set_antenna")
+def set_antenna(executor: "Executor", params: dict):
+    if not Validator(params, "set_antenna").require("antenna").require("angle").validate():
+        return
+    antenna  = params.get("antenna")   # "left" or "right"
+    angle    = params.get("angle")     # degrees
+    duration = params.get("duration", 0.5)
+    executor.reachy.head.setAntenna(antenna, angle, duration)
+
+@register_action("vibrate_antenna")
+def vibrate_antenna(executor: "Executor", params: dict):
+    if not Validator(params, "vibrate_antenna").require("antenna").validate():
+        return
+    antenna   = params.get("antenna")
+    amplitude = params.get("amplitude", 15.0)
+    cycles    = params.get("cycles", 3)
+    speed     = params.get("speed", 0.08)
+    executor.reachy.head.vibrateAntenna(antenna, amplitude, cycles, speed)

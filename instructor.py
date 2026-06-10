@@ -43,6 +43,28 @@ class Instructor:
             cm.MKprintWarning("Failed to load : " + path + " , returning Parser({}) with error : " + str(e), SCRIPT_NAME, SCRIPT_COLOR)
             return Instructor({}, reachyController)
 
+    @classmethod
+    def loadFromString(cls, yamlString: str, reachyController: "reachyController.ReachyController") -> "Instructor":
+        try:
+            # Correction automatique si reachy: manque
+            stripped = yamlString.strip()
+            if not stripped.startswith("reachy:"):
+                yamlString = "reachy:\n" + "\n".join("- " + line if line and not line.startswith("-") and not line.startswith(" ") else line for line in stripped.splitlines())
+
+            load = yml.safe_load(yamlString)
+            if isinstance(load, dict) and "reachy" in load and isinstance(load.get("reachy"), list):
+                cm.MKprint("successfully loaded ryi format from string", SCRIPT_NAME, SCRIPT_COLOR)
+                return cls(load.get("reachy"), reachyController)
+            elif isinstance(load, list):
+                cm.MKprint("successfully loaded yml format from string", SCRIPT_NAME, SCRIPT_COLOR)
+                return cls(load, reachyController)
+            else:
+                cm.MKprintWarning("Unknown format", SCRIPT_NAME, SCRIPT_COLOR)
+                return cls([], reachyController)
+        except Exception as e:
+            cm.MKprintWarning("Failed to load from string : " + str(e), SCRIPT_NAME, SCRIPT_COLOR)
+            return cls([], reachyController)
+
 class Executor:
 
     def __init__(self, reachy : "reachyController.ReachyController"):
