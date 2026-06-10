@@ -41,13 +41,13 @@ class ReachyHead(rp.ReachyPart):
         
         return r
 
-    # ─── Motion ────────────────────────────────────────────────────────────────
+    # Motion
 
     def lookAt(self, degAngles: list, duration: float = 1) -> None:
         cm.MKprint(f"Looking at {degAngles} in {duration}s", self.CLASS_NAME, self.CLASS_COLOR)
         self._reachyHead.look_at(x=degAngles[0], y=degAngles[1], z=degAngles[2], duration=duration)
 
-    # ─── Record / Play ─────────────────────────────────────────────────────────
+    # Record / Replay
 
     def forwardKinematic(self, distance=1.0) -> list:
     
@@ -71,7 +71,6 @@ class ReachyHead(rp.ReachyPart):
 
         direction = target / norm
 
-        # yaw + pitch only (plus stable pour tête robot)
         yaw = np.arctan2(direction[1], direction[0])
         pitch = -np.arctan2(direction[2], np.sqrt(direction[0]**2 + direction[1]**2))
 
