@@ -564,17 +564,25 @@ def move_hand_sequence(executor, params):
 def set_antenna(executor: "Executor", params: dict):
     if not Validator(params, "set_antenna").require("antenna").require("angle").validate():
         return
-    antenna  = params.get("antenna")   # "left" or "right"
-    angle    = params.get("angle")     # degrees
+    antenna  = executor.reachy.head.antennaRight
+    angle    = params.get("angle")
     duration = params.get("duration", 0.5)
-    executor.reachy.head.setAntenna(antenna, angle, duration)
+
+    if params.get("antenna") == "left":
+        antenna = executor.reachy.head.antennaLeft
+
+    antenna.setAntenna(angle, duration)
 
 @register_action("vibrate_antenna")
 def vibrate_antenna(executor: "Executor", params: dict):
     if not Validator(params, "vibrate_antenna").require("antenna").validate():
         return
-    antenna   = params.get("antenna")
+    antenna   = executor.reachy.head.antennaRight
     amplitude = params.get("amplitude", 15.0)
     cycles    = params.get("cycles", 3)
     speed     = params.get("speed", 0.08)
-    executor.reachy.head.vibrateAntenna(antenna, amplitude, cycles, speed)
+
+    if params.get("antenna") == "left":
+        antenna = executor.reachy.head.antennaLeft
+
+    antenna.vibrateAntenna(amplitude, cycles, speed)

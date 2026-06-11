@@ -46,7 +46,6 @@ class Instructor:
     @classmethod
     def loadFromString(cls, yamlString: str, reachyController: "reachyController.ReachyController") -> "Instructor":
         try:
-            # Correction automatique si reachy: manque
             stripped = yamlString.strip()
             if not stripped.startswith("reachy:"):
                 yamlString = "reachy:\n" + "\n".join("- " + line if line and not line.startswith("-") and not line.startswith(" ") else line for line in stripped.splitlines())

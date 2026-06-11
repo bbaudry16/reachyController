@@ -4,6 +4,7 @@ import time
 from . import config
 from . import reachyPart as rp
 from . import consoleManager as cm
+from .antennaController import ReachyAntenna
 from .timeSeries import TimeSeries
 from scipy.spatial.transform import Rotation as R
 import numpy as np
@@ -27,6 +28,8 @@ class ReachyHead(rp.ReachyPart):
     def __init__(self, reachy: ReachySDK):
         self._reachyHead = reachy.head
         self._disks      = self._setupDisks()
+        self.antennaLeft = ReachyAntenna(reachy, config.ARM_LEFT_ID)
+        self.antennaRight = ReachyAntenna(reachy, config.ARM_RIGHT_ID)
 
     def _setupDisks(self) -> dict:
         r = {}
@@ -124,32 +127,3 @@ class ReachyHead(rp.ReachyPart):
             self._disks["neck_roll"].goal_position = roll
 
             time.sleep(samplingTime)
-    
-    def setAntenna(self, antenna: str, angle: float, duration: float = 0.5) -> None:
-
-        motor_name = "l_antenna" if antenna == "left" else "r_antenna"
-        motor = self._disks.get(motor_name)
-        if motor is None:
-            cm.MKprintWarning(f"Antenna {antenna} not found.", self.CLASS_NAME, self.CLASS_COLOR)
-            return
-        cm.MKprint(f"Antenna {antenna} going to angles {angle}° in {duration}s", self.CLASS_NAME, self.CLASS_COLOR)
-        motor.goal_position = angle
-        time.sleep(duration)
-
-    def vibrateAntenna(self, antenna: str, amplitude: float = 15.0, cycles: int = 3, speed: float = 0.08) -> None:
-
-        motor_name = "l_antenna" if antenna == "left" else "r_antenna"
-        motor = self._disks.get(motor_name)
-        if motor is None:
-            return
-        
-        base = motor.present_position
-        cm.MKprint(f"Vibrating antenna {antenna} x{cycles}", self.CLASS_NAME, self.CLASS_COLOR)
-        for _ in range(cycles):
-            
-            motor.goal_position = base + amplitude
-            time.sleep(speed)
-            motor.goal_position = base - amplitude
-            time.sleep(speed)
-
-        motor.goal_position = base
