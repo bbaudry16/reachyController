@@ -538,27 +538,34 @@ def set_table_from_surface(executor: "Executor", params: dict):
         executor.reachy.armLeft.setTable(table)
 
 @register_action("move_hand_sequence")
-def move_hand_sequence(executor, params):
+def move_hand_sequence(executor: "Executor", params: dict):
     if not Validator(params, "move_hand_sequence").require("arm").require("positions").require("duration").validate():
         return
-    
-    arm = params["arm"]
-    positions = params["positions"]
+ 
+    arm            = params["arm"]
+    positions      = params["positions"]
     total_duration = params["duration"]
-    step_duration = params.get("step_duration", 0.5)
-    orientation = params.get("orientation", [0, 0, 0])
-
+    step_duration  = params.get("step_duration", 0.5)
+    orientation    = params.get("orientation", [0, 0, 0])
+ 
     reachyArm = executor.reachy.armRight
     if arm == "left":
         reachyArm = executor.reachy.armLeft
-
+ 
     start = time.time()
     i = 0
-    while (time.time() - start) < total_duration:
+    while True:
+        elapsed = time.time() - start
+        remaining = total_duration - elapsed
+        if remaining <= 0:
+            break
         pos = positions[i % len(positions)]
-        reachyArm.gotoCartesianPoint(pos, orientation, duration=step_duration)
-        time.sleep(step_duration)
+
+        actual_step = min(step_duration, remaining)
+        reachyArm.gotoCartesianPoint(pos, orientation, duration=actual_step)
+
         i += 1
+
 
 @register_action("set_antenna")
 def set_antenna(executor: "Executor", params: dict):
