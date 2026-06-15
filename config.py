@@ -56,3 +56,6 @@ SAFE_GOTO_STEPS : int = 5
 ARM_LEFT_ID  : str = "l"
 ARM_RIGHT_ID : str = "r"
 ARM_NAME     : str = "arm"
+
+# fans
+FAN_THRESHOLD : float = 40.0

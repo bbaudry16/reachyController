@@ -7,6 +7,7 @@ from . import headController as hc
 from . import torsoController as to
 from . import collisionManager as col
 from . import consoleManager as cm
+from . import fanController as fc
 from .timeSeries import TimeSeries
 from . import config
 
@@ -31,6 +32,8 @@ class ReachyController:
         self.head     = hc.ReachyHead(self.reachy)
         self.torso    = to.ReachyTorso()
 
+        self.fans = fc.ReachyFan(self.reachy)
+
         self.collision = col.CollisionManager(self.armRight, self.armLeft, self.torso)
         self.armLeft.setCollisionManager(self.collision)
         self.armRight.setCollisionManager(self.collision)
@@ -42,6 +45,7 @@ class ReachyController:
 
     def turnOffSmooth(self) -> None:
         self.reachy.turn_off_smoothly("reachy")
+        self.fans.turnOffAll()
 
     def turnOnSafe(self) -> None:
         """Turn on without snapping — syncs goal positions to present positions."""
