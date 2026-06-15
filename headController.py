@@ -1,4 +1,5 @@
 from reachy_sdk import trajectory, ReachySDK
+from reachy_sdk.camera import ZoomLevel
 import time
 
 from . import config
@@ -30,6 +31,8 @@ class ReachyHead(rp.ReachyPart):
         self._disks      = self._setupDisks()
         self.antennaLeft = ReachyAntenna(reachy, config.ARM_LEFT_ID)
         self.antennaRight = ReachyAntenna(reachy, config.ARM_RIGHT_ID)
+        self.cameraLeft = reachy.left_camera
+        self.cameraRight= reachy.right_camera
 
     def _setupDisks(self) -> dict:
         r = {}
@@ -127,3 +130,10 @@ class ReachyHead(rp.ReachyPart):
             self._disks["neck_roll"].goal_position = roll
 
             time.sleep(samplingTime)
+
+    def setCameraZoomLevel(self, zoomLevel : "ZoomLevel"):
+        self.cameraLeft.zoom_level = zoomLevel
+        self.cameraRight.zoom_level = zoomLevel
+
+        self.cameraLeft.start_autofocus()
+        self.cameraRight.start_autofocus()
