@@ -1,9 +1,11 @@
 from reachy_sdk import trajectory, ReachySDK
+from reachy_sdk.camera import ZoomLevel
 import time
 
 from . import config
 from . import reachyPart as rp
 from . import consoleManager as cm
+from .antennaController import ReachyAntenna
 from .timeSeries import TimeSeries
 from scipy.spatial.transform import Rotation as R
 import numpy as np
@@ -27,6 +29,10 @@ class ReachyHead(rp.ReachyPart):
     def __init__(self, reachy: ReachySDK):
         self._reachyHead = reachy.head
         self._disks      = self._setupDisks()
+        self.antennaLeft = ReachyAntenna(reachy, config.ARM_LEFT_ID)
+        self.antennaRight = ReachyAntenna(reachy, config.ARM_RIGHT_ID)
+        self.cameraLeft = reachy.left_camera
+        self.cameraRight= reachy.right_camera
 
     def _setupDisks(self) -> dict:
         r = {}
@@ -41,13 +47,13 @@ class ReachyHead(rp.ReachyPart):
         
         return r
 
-    # ─── Motion ────────────────────────────────────────────────────────────────
+    # Motion
 
     def lookAt(self, degAngles: list, duration: float = 1) -> None:
         cm.MKprint(f"Looking at {degAngles} in {duration}s", self.CLASS_NAME, self.CLASS_COLOR)
         self._reachyHead.look_at(x=degAngles[0], y=degAngles[1], z=degAngles[2], duration=duration)
 
-    # ─── Record / Play ─────────────────────────────────────────────────────────
+    # Record / Replay
 
     def forwardKinematic(self, distance=1.0) -> list:
     
@@ -71,7 +77,6 @@ class ReachyHead(rp.ReachyPart):
 
         direction = target / norm
 
-        # yaw + pitch only (plus stable pour tête robot)
         yaw = np.arctan2(direction[1], direction[0])
         pitch = -np.arctan2(direction[2], np.sqrt(direction[0]**2 + direction[1]**2))
 
@@ -125,3 +130,10 @@ class ReachyHead(rp.ReachyPart):
             self._disks["neck_roll"].goal_position = roll
 
             time.sleep(samplingTime)
+
+    def setCameraZoomLevel(self, zoomLevel : "ZoomLevel"):
+        self.cameraLeft.zoom_level = zoomLevel
+        self.cameraRight.zoom_level = zoomLevel
+
+        self.cameraLeft.start_autofocus()
+        self.cameraRight.start_autofocus()

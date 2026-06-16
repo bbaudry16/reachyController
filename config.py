@@ -5,13 +5,14 @@ ELBOW_MOTOR_NAME    : list = ["elbow_pitch", "forearm_yaw"]
 FOREARM_MOTOR_NAME  : list = ["wrist_pitch", "wrist_roll", HAND_MOTOR_NAME]
 ARM_MOTOR_NAME      : list = SHOULDER_MOTOR_NAME + ELBOW_MOTOR_NAME + FOREARM_MOTOR_NAME
 
-ANTENNA_MOTOR_NAME    : list = ["l_antenna", "r_antenna"]
+
+ANTENNA_MOTOR_NAME : str = "antenna"
 DISK_MOTOR_ROLL_NAME  : str  = "neck_roll"
 DISK_MOTOR_PITCH_NAME : str  = "neck_pitch"
 DISK_MOTOR_YAW_NAME   : str  = "neck_yaw"
 TIME_SERIE_HEAD_VALUES_NAME : list = ["head_x", "head_y", "head_z"]
 DISK_MOTOR_NAME : list = [DISK_MOTOR_ROLL_NAME, DISK_MOTOR_PITCH_NAME, DISK_MOTOR_YAW_NAME]
-HEAD_MOTOR_NAME : list = DISK_MOTOR_NAME + ANTENNA_MOTOR_NAME
+HEAD_MOTOR_NAME : list = DISK_MOTOR_NAME
 
 # arm geometry (meter)
 ORIGIN_TO_SHOULDER : float = 0.19
@@ -55,3 +56,6 @@ SAFE_GOTO_STEPS : int = 5
 ARM_LEFT_ID  : str = "l"
 ARM_RIGHT_ID : str = "r"
 ARM_NAME     : str = "arm"
+
+# fans
+FAN_THRESHOLD : float = 40.0
