@@ -1,0 +1,162 @@
+format : reachy_instruction
+version : 1.0
+extension : .ryi
+
+reachy:
+
+- reachy_on
+
+- capture:
+    as: angle_base
+    value:
+        add: [10, 5]
+
+- capture:
+    as: scale
+    value:
+        mul: [3, 2]
+
+- capture:
+    as: threshold
+    value:
+        add: [2, 1]
+
+- do:
+    times: 2
+    actions :
+        - look_at:
+            target:
+                vec_add:
+                    - [0, 0, 0]
+                    - [1, 0, 0]
+
+        - close_hand:
+            arm: left
+
+        - place_hand_on_table:
+            arm: right
+            duration:
+                add: [1, 1]
+
+        - parallel:
+            - capture:
+                as: record
+                action:
+                    record_all:
+                        duration: 5
+                        fps: 30
+
+            - move_hand:
+                arm: right
+                position:
+                    vec_add:
+                        - [0.2, 0.2, 0.2]
+                        - [0.3, 0.3, 0.3]
+                orientation: [0, 90, 0]
+                duration:
+                    mul: [1, 5]
+
+            - look_at:
+                target: [0.5, 0.5, 0.3]
+
+            - open_hand:
+                arm: left
+                duration: 5
+
+        - save_record_as_CSV:
+            file_name: test_yml.csv
+            record: $record
+
+        - capture:
+            as: a
+            action:
+                load_record_from_CSV:
+                    file_name: test_yml.csv
+
+        - play_record_all:
+            record: $a
+            start_duration: 3
+
+- move_joints:
+    arm: right
+    joints:
+        - mul: [5, 4]
+        - 0
+        - 0
+        - 0
+        - 0
+        - 0
+        - 0
+    duration:
+        add: [1, 2]
+    collision_check_number: 3
+    interpolation: linear
+
+- capture:
+    as: joints
+    action:
+        get_joint_positions:
+            arm: right
+
+- capture:
+    as: print
+    action:
+        get_look_position
+
+- if:
+    condition:
+        gt:
+            - $threshold
+            - 2
+
+    actions:
+        - print:
+            message: "Threshold OK"
+            type: debug
+
+        - move_joints:
+            arm: right
+            joints:
+                - mul: [$scale, 2]
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+            duration: 2
+
+- if:
+    condition:
+        and:
+            - gt: [$scale, 3]
+            - lt: [$scale, 10]
+
+    actions:
+        - print:
+            message:
+                add:
+                    - "Scale OK = "
+                    - $scale
+            type: debug
+
+- print:
+    message: $print
+    type: debug
+
+- capture:
+    as: head_pos
+    action:
+        get_look_position
+
+- capture:
+    as: hand_pos
+    action:
+        get_hand_position:
+            arm: right
+
+- print:
+    message: $head_pos
+
+- print:
+    message: $hand_pos
