@@ -58,4 +58,4 @@ ARM_RIGHT_ID : str = "r"
 ARM_NAME     : str = "arm"
 
 # fans
-FAN_THRESHOLD : float = 40.0
+FAN_THRESHOLD : float = 35.0

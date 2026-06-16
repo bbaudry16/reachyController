@@ -593,3 +593,16 @@ def vibrate_antenna(executor: "Executor", params: dict):
         antenna = executor.reachy.head.antennaLeft
 
     antenna.vibrateAntenna(amplitude, cycles, speed)
+
+@register_action("rotate_antenna")
+def rotate_antenna(executor: "Executor", params: dict):
+    if not Validator(params, "rotate_antenna").require("antenna").validate():
+        return
+    antenna   = executor.reachy.head.antennaRight
+    cycles    = params.get("cycles", 3)
+    speed     = params.get("speed", 0.08)
+
+    if params.get("antenna") == "left":
+        antenna = executor.reachy.head.antennaLeft
+
+    antenna.doABarelRoll(cycles, speed)
