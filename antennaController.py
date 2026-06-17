@@ -54,26 +54,18 @@ class ReachyAntenna(rp.ReachyPart):
 
         trajectory.goto(interpolated, duration=speed)
 
-    def doABarelRoll(self, cycles : int  = 1, speed : float = 0.08):
+    def doABarelRoll(self, cycles: int = 1, speed: float = 0.08) -> None:
         base = self._antenna.present_position
         cm.MKprint(f"rotating antenna {self.sided('antenna')} x{cycles}", self.CLASS_NAME, self.CLASS_COLOR)
+        
+        # Sweep toute la plage physique disponible (~300° total)
+        MAX =  149.0
+        MIN = -149.0
+        
         for _ in range(cycles):
-            
-            interpolated = {
-                        self._antenna : base + 91
-                    }
-
-            trajectory.goto(interpolated, duration=speed/2.0)
-
-            interpolated = {
-                        self._antenna : self._antenna.present_position + 89
-                    }
-
-            trajectory.goto(interpolated, duration=speed/2.0)
+            trajectory.goto({self._antenna: MAX}, duration=speed)
+            trajectory.goto({self._antenna: MIN}, duration=speed * 2)  # long sweep
+            trajectory.goto({self._antenna: MAX}, duration=speed * 2)
         
-    
-        interpolated = {
-                    self._antenna : base
-                }
-        
-        trajectory.goto(interpolated, duration=speed/3.0)
+        # Retour à la base
+        trajectory.goto({self._antenna: base}, duration=speed)

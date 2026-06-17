@@ -1,5 +1,5 @@
-from reachy_sdk import trajectory, ReachySDK
 from reachy_sdk.camera import ZoomLevel
+from reachy_sdk import trajectory, ReachySDK
 import time
 
 from . import config
@@ -31,6 +31,7 @@ class ReachyHead(rp.ReachyPart):
         self._disks      = self._setupDisks()
         self.antennaLeft = ReachyAntenna(reachy, config.ARM_LEFT_ID)
         self.antennaRight = ReachyAntenna(reachy, config.ARM_RIGHT_ID)
+
         self.cameraLeft = reachy.left_camera
         self.cameraRight= reachy.right_camera
 
@@ -48,6 +49,31 @@ class ReachyHead(rp.ReachyPart):
         return r
 
     # Motion
+
+    def getHeadAngles(self) -> list:
+        """Return current [neck_roll, neck_pitch, neck_yaw] in degrees."""
+        return [round(self._disks[name].present_position, 2)
+                for name in config.HEAD_MOTOR_NAME]
+
+    def gotoHeadAngles(self, angles: list, duration: float = None) -> None:
+        
+        current = self.getHeadAngles()
+        max_delta = max(abs(a - c) for a, c in zip(angles, current))
+ 
+        if duration is None:
+            duration = max(0.5, min(2.0, max_delta / 15.0 * 0.5))
+ 
+        cm.MKprint(f"Head goto {angles} delta={max_delta:.1f}° in {duration:.2f}s",
+                   self.CLASS_NAME, self.CLASS_COLOR)
+ 
+        interpolated = {
+            self._disks[config.DISK_MOTOR_ROLL_NAME]:  angles[0],
+            self._disks[config.DISK_MOTOR_PITCH_NAME]: angles[1],
+            self._disks[config.DISK_MOTOR_YAW_NAME]:   angles[2],
+        }
+        trajectory.goto(interpolated, duration=duration)
+
+
 
     def lookAt(self, degAngles: list, duration: float = 1) -> None:
         cm.MKprint(f"Looking at {degAngles} in {duration}s", self.CLASS_NAME, self.CLASS_COLOR)
@@ -130,7 +156,7 @@ class ReachyHead(rp.ReachyPart):
             self._disks["neck_roll"].goal_position = roll
 
             time.sleep(samplingTime)
-
+    
     def setCameraZoomLevel(self, zoomLevel : "ZoomLevel"):
         self.cameraLeft.zoom_level = zoomLevel
         self.cameraRight.zoom_level = zoomLevel
