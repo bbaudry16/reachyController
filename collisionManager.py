@@ -7,54 +7,68 @@ from . import consoleManager as cm
 
 class CollisionManager:
     """
-    Validates whether a planned movement is collision-free.
+    Validates planned arm movements against collision constraints.
 
-    askValidMovement(armId, joint_dict) — vérifie un seul bras contre
-        la position LIVE de l'autre bras (usage hors parallel).
+    Use L{askValidMovement} when only one arm is moving (reads the other arm
+    live). Use L{askValidMovementBoth} for parallel moves, which checks both
+    arms against their predicted future positions.
 
-    askValidMovementBoth(joint_dict_right, joint_dict_left) — vérifie les
-        deux bras simultanément en utilisant leurs cibles prédites mutuelles.
-        C'est la méthode correcte pour un mouvement parallel, où les deux
-        bras bougent en même temps et doivent être vérifiés l'un contre l'autre
-        dans leur état FUTUR, pas leur état live.
+    @ivar _armRight: Right arm controller.
+    @ivar _armLeft: Left arm controller.
+    @ivar _arms: Mapping of arm ID to arm controller.
+    @ivar _torso: Torso part for collision geometry.
     """
 
     def __init__(self, armRight: ac.ReachyArm, armLeft: ac.ReachyArm, torso: ReachyPart):
+        """
+        @param armRight: Right arm controller.
+        @type armRight: ac.ReachyArm
+        @param armLeft: Left arm controller.
+        @type armLeft: ac.ReachyArm
+        @param torso: Torso part providing collision capsules.
+        @type torso: ReachyPart
+        """
         self._armRight = armRight
         self._armLeft  = armLeft
-        self._arms  = {armRight.getArmId(): armRight, armLeft.getArmId(): armLeft}
-        self._torso = torso
+        self._arms     = {armRight.getArmId(): armRight, armLeft.getArmId(): armLeft}
+        self._torso    = torso
 
-    # ── Vérification d'un seul bras (bras opposé lu en live) ──────────────────
     def askValidMovement(self, armId: str, joint_dict: dict) -> bool:
         """
-        Vérifie le mouvement d'un seul bras contre la position live de l'autre.
-        Utilisé quand un seul bras bouge (pas de parallel).
+        Check a single arm movement against the live position of the other arm.
+
+        Use this when only one arm is moving.
+
+        @param armId: ID of the moving arm.
+        @type armId: str
+        @param joint_dict: Target joint positions for the moving arm.
+        @type joint_dict: dict
+        @rtype: bool
+        @return: True if no collision is detected.
         """
         moving_arm  = self._arms[armId]
         static_arm  = self._armRight if armId == self._armLeft.getArmId() else self._armLeft
 
         moving_colliders = moving_arm.getCollisionFromPosition(joint_dict)
-        static_colliders = static_arm.getCollision()   # position live
+        static_colliders = static_arm.getCollision()
         torso_colliders  = self._torso.getCollision()
 
         return self._check(moving_colliders, static_colliders, torso_colliders)
 
-    # ── Vérification des deux bras simultanément (pour parallel) ─────────────
     def askValidMovementBoth(self,
                               joint_dict_right: dict | None,
                               joint_dict_left:  dict | None) -> tuple[bool, bool]:
         """
-        Vérifie les deux bras contre leurs cibles prédites mutuelles.
+        Check both arms simultaneously using their predicted target positions.
 
-        Paramètres
-        ----------
-        joint_dict_right : cible prédite du bras droit   (None = garder live)
-        joint_dict_left  : cible prédite du bras gauche  (None = garder live)
+        Pass None for an arm to use its current live position instead.
 
-        Retour
-        ------
-        (right_ok, left_ok) : booléens indépendants par bras.
+        @param joint_dict_right: Predicted target for the right arm, or None.
+        @type joint_dict_right: dict or None
+        @param joint_dict_left: Predicted target for the left arm, or None.
+        @type joint_dict_left: dict or None
+        @rtype: tuple[bool, bool]
+        @return: (right_ok, left_ok) — independent validity per arm.
         """
         if joint_dict_right is not None:
             caps_right = self._armRight.getCollisionFromPosition(joint_dict_right)
@@ -68,39 +82,40 @@ class CollisionManager:
 
         torso_colliders = self._torso.getCollision()
 
-        right_ok = self._check(caps_right, caps_left,   torso_colliders)
-        left_ok  = self._check(caps_left,  caps_right,  torso_colliders)
+        right_ok = self._check(caps_right, caps_left,  torso_colliders)
+        left_ok  = self._check(caps_left,  caps_right, torso_colliders)
 
         return right_ok, left_ok
 
-    # ── Logique de check commune ───────────────────────────────────────────────
     @staticmethod
     def _check(moving_colliders: list[CapsuleCollider],
                static_colliders: list[CapsuleCollider],
                torso_colliders:  list[CapsuleCollider]) -> bool:
         """
-        Retourne True si aucune collision n'est détectée.
-        - Bras mobile vs bras statique : toutes les capsules.
-        - Bras mobile vs torse : seulement avant-bras (cap1) et main (cap2).
-          Le bras supérieur (cap0) est exclu pour éviter les faux positifs en
-          pose neutre (le segment épaule→coude passe près de l'axe du torse).
+        Return True if no collision is detected.
+
+        Checks moving arm against static arm (all capsules) and against torso
+        (forearm and hand only — the upper arm capsule is excluded to avoid
+        false positives when the arm hangs at rest near the torso axis).
+
+        @param moving_colliders: Capsules of the arm being checked.
+        @type moving_colliders: list[CapsuleCollider]
+        @param static_colliders: Capsules of the other arm.
+        @type static_colliders: list[CapsuleCollider]
+        @param torso_colliders: Capsules of the torso.
+        @type torso_colliders: list[CapsuleCollider]
+        @rtype: bool
         """
         for moving in moving_colliders:
             for static in static_colliders:
                 if moving.intersects(static):
-                    cm.MKprintSafety(
-                        "Arm-arm collision detected",
-                        "CollisionManager", cm.Color.RED
-                    )
+                    cm.MKprintSafety("Arm-arm collision detected", "CollisionManager", cm.Color.RED)
                     return False
 
-        for moving in moving_colliders[1:]:   # cap1 et cap2 seulement
+        for moving in moving_colliders[1:]:
             for static in torso_colliders:
                 if moving.intersects(static):
-                    cm.MKprintSafety(
-                        "Arm-torso collision detected",
-                        "CollisionManager", cm.Color.RED
-                    )
+                    cm.MKprintSafety("Arm-torso collision detected", "CollisionManager", cm.Color.RED)
                     return False
 
         return True

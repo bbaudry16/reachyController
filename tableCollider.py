@@ -4,57 +4,63 @@ import numpy as np
 
 class TableCollider:
     """
-    Table décrite par une boîte AABB (Axis-Aligned Bounding Box).
+    Axis-aligned bounding box (AABB) representing a table obstacle.
 
-    Repère Reachy (origine = centre torse, hauteur épaules) :
-        X = avant du robot
-        Y = gauche du robot
-        Z = haut
+    The Reachy coordinate frame has X+ forward, Y+ left, Z+ up, with the
+    origin at the torso center at shoulder height.
 
-    Paramètres
-    ----------
-    x_min, x_max : profondeur (avant/arrière).  x_min < x_max.
-    y_min, y_max : largeur (gauche/droite).      y_min < y_max.
-    z_min, z_max : hauteur (bas/haut).           z_min < z_max.
-                   z_max correspond au dessus de la table (surface),
-                   z_min au dessous (sol ou châssis).
+    A point is in collision if it falls within the closed box defined by
+    [x_min, x_max] x [y_min, y_max] x [z_min, z_max].
 
-    Exemple typique — robot assis devant une table :
-        x_min =  0.10   (bord avant de la table à 10 cm devant le torse)
-        x_max =  0.80   (bord arrière à 80 cm)
-        y_min = -0.50   (bord gauche)
-        y_max =  0.50   (bord droit)
-        z_min = -0.60   (dessous de la table)
-        z_max = -0.40   (dessus de la table / surface)
-
-    Un point P est en collision si :
-        x_min ≤ P.x ≤ x_max  AND
-        y_min ≤ P.y ≤ y_max  AND
-        z_min ≤ P.z ≤ z_max
-
-    Comportement physiquement correct :
-        - Le bras peut descendre en DESSOUS de z_max si x < x_min
-          (il dépasse de la table côté robot → pas de collision).
-        - Le bras peut passer en dessous de z_max si y < y_min ou y > y_max
-          (il dépasse latéralement).
-        - Seul le volume intérieur de la boîte est interdit.
+    @ivar x_min: Minimum X bound (backward direction).
+    @type x_min: float
+    @ivar x_max: Maximum X bound (forward direction).
+    @type x_max: float
+    @ivar y_min: Minimum Y bound (right direction).
+    @type y_min: float
+    @ivar y_max: Maximum Y bound (left direction).
+    @type y_max: float
+    @ivar z_min: Minimum Z bound (bottom of table).
+    @type z_min: float
+    @ivar z_max: Maximum Z bound (table surface).
+    @type z_max: float
     """
 
     def __init__(self,
                  x_min: float, x_max: float,
                  y_min: float, y_max: float,
                  z_min: float, z_max: float) -> None:
+        """
+        @param x_min: Minimum X coordinate.
+        @type x_min: float
+        @param x_max: Maximum X coordinate.
+        @type x_max: float
+        @param y_min: Minimum Y coordinate.
+        @type y_min: float
+        @param y_max: Maximum Y coordinate.
+        @type y_max: float
+        @param z_min: Minimum Z coordinate.
+        @type z_min: float
+        @param z_max: Maximum Z coordinate.
+        @type z_max: float
+        @raise ValueError: If any dimension has min >= max.
+        """
         if x_min >= x_max or y_min >= y_max or z_min >= z_max:
             raise ValueError(
-                "TableCollider: chaque dimension doit avoir min < max. "
-                f"Reçu x=[{x_min},{x_max}] y=[{y_min},{y_max}] z=[{z_min},{z_max}]"
+                f"TableCollider: each dimension must have min < max. "
+                f"Got x=[{x_min},{x_max}] y=[{y_min},{y_max}] z=[{z_min},{z_max}]"
             )
         self.x_min = x_min;  self.x_max = x_max
         self.y_min = y_min;  self.y_max = y_max
         self.z_min = z_min;  self.z_max = z_max
 
     def containsPoint(self, point) -> bool:
-        """Retourne True si le point est à l'intérieur du volume de la table."""
+        """
+        Return True if the given point is inside the table volume.
+
+        @param point: 3D point as an array-like of length 3.
+        @rtype: bool
+        """
         x, y, z = float(point[0]), float(point[1]), float(point[2])
         return (self.x_min <= x <= self.x_max and
                 self.y_min <= y <= self.y_max and
@@ -62,21 +68,28 @@ class TableCollider:
 
     def distanceToPoint(self, point) -> float:
         """
-        Distance signée d'un point à la boîte.
-        Négatif = à l'intérieur, positif = à l'extérieur.
+        Return the signed distance from a point to the box surface.
+
+        Positive means outside; negative means inside.
+
+        @param point: 3D point as an array-like of length 3.
+        @rtype: float
         """
-        p = np.array([float(point[0]), float(point[1]), float(point[2])])
+        p  = np.array([float(point[0]), float(point[1]), float(point[2])])
         lo = np.array([self.x_min, self.y_min, self.z_min])
         hi = np.array([self.x_max, self.y_max, self.z_max])
-        # Distance extérieure (0 si dedans)
         d_outside = np.linalg.norm(np.maximum(0, np.maximum(lo - p, p - hi)))
-        # Distance intérieure (0 si dehors)
         d_inside  = np.min(np.minimum(p - lo, hi - p))
         if d_outside > 0:
-            return float(d_outside)   # dehors → positif
-        return -float(d_inside)       # dedans → négatif
+            return float(d_outside)
+        return -float(d_inside)
 
     def toDict(self) -> dict:
+        """
+        Serialize the collider to a plain dictionary.
+
+        @rtype: dict
+        """
         return {
             "x_min": self.x_min, "x_max": self.x_max,
             "y_min": self.y_min, "y_max": self.y_max,
@@ -85,6 +98,13 @@ class TableCollider:
 
     @classmethod
     def fromDict(cls, d: dict) -> "TableCollider":
+        """
+        Deserialize a collider from a plain dictionary.
+
+        @param d: Dictionary with keys x_min, x_max, y_min, y_max, z_min, z_max.
+        @type d: dict
+        @rtype: TableCollider
+        """
         return cls(d["x_min"], d["x_max"],
                    d["y_min"], d["y_max"],
                    d["z_min"], d["z_max"])
@@ -96,8 +116,23 @@ class TableCollider:
                     z_surface: float,
                     thickness: float = 0.10) -> "TableCollider":
         """
-        Constructeur pratique : définit la table par sa surface et son épaisseur.
-        z_max = z_surface (dessus), z_min = z_surface - thickness.
+        Construct a collider from the table surface height and thickness.
+
+        z_max is set to z_surface and z_min to z_surface - thickness.
+
+        @param x_min: Minimum X bound.
+        @type x_min: float
+        @param x_max: Maximum X bound.
+        @type x_max: float
+        @param y_min: Minimum Y bound.
+        @type y_min: float
+        @param y_max: Maximum Y bound.
+        @type y_max: float
+        @param z_surface: Z coordinate of the table surface (top face).
+        @type z_surface: float
+        @param thickness: Table thickness in meters (default 0.10).
+        @type thickness: float
+        @rtype: TableCollider
         """
         return cls(x_min, x_max,
                    y_min, y_max,
